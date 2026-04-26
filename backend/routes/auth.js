@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { generateToken, protect } = require('../middleware/auth');
+const { upload, handleMulterError } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -133,7 +134,50 @@ router.get('/me', protect, async (req, res) => {
     console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+// @route   POST /api/auth/send-otp
+// @desc    Send verification OTP for phone number change
+// @access  Private
+router.post('/send-otp', protect, [
+  body('phone').trim().notEmpty().withMessage('Phone number is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { phone } = req.body;
+    const user = await User.findById(req.user.id);
+
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Save to user with 10 mins expiration
+    user.phoneVerificationCode = otp;
+    user.phoneVerificationExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    // Mock SMS sending
+    console.log(`\n==============================================`);
+    console.log(`[MOCK SMS SERVICE]`);
+    console.log(`To: ${phone}`);
+    console.log(`Message: Your RetroFits LK verification code is: ${otp}`);
+    console.log(`==============================================\n`);
+
+    res.json({
+      success: true,
+      message: 'Verification code sent successfully'
+    });
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while sending OTP'
     });
   }
 });
@@ -141,7 +185,7 @@ router.get('/me', protect, async (req, res) => {
 // @route   PUT /api/auth/profile
 // @desc    Update user profile
 // @access  Private
-router.put('/profile', protect, [
+router.put('/profile', protect, upload.single('profileImage'), handleMulterError, [
   body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
   body('phone').optional().trim().notEmpty().withMessage('Phone cannot be empty')
 ], async (req, res) => {
@@ -154,11 +198,44 @@ router.put('/profile', protect, [
       });
     }
 
-    const { name, phone } = req.body;
+    const { name, phone, otp } = req.body;
     const user = await User.findById(req.user.id);
 
     if (name) user.name = name;
-    if (phone) user.phone = phone;
+    
+    if (req.file) {
+      user.profileImage = `/uploads/${req.file.filename}`;
+    } else if (req.body.removeProfileImage === 'true') {
+      user.profileImage = '';
+    }
+    
+    if (phone && phone !== user.phone) {
+      if (!otp) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification code is required to change phone number'
+        });
+      }
+      
+      if (!user.phoneVerificationCode || user.phoneVerificationCode !== otp) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid verification code'
+        });
+      }
+      
+      if (user.phoneVerificationExpires < Date.now()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification code has expired'
+        });
+      }
+      
+      // Update phone and clear verification code
+      user.phone = phone;
+      user.phoneVerificationCode = undefined;
+      user.phoneVerificationExpires = undefined;
+    }
 
     await user.save();
 
@@ -171,9 +248,10 @@ router.put('/profile', protect, [
     console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
+
 
 module.exports = router;

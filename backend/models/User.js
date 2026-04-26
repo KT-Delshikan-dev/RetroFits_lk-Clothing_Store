@@ -26,6 +26,10 @@ const UserSchema = new mongoose.Schema({
     required: [true, 'Phone number is required'],
     trim: true
   },
+  profileImage: {
+    type: String,
+    default: ''
+  },
   role: {
     type: String,
     enum: ['user', 'admin'],
@@ -46,6 +50,12 @@ const UserSchema = new mongoose.Schema({
       default: false
     }
   }],
+  phoneVerificationCode: {
+    type: String
+  },
+  phoneVerificationExpires: {
+    type: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -178,6 +178,125 @@ const seedData = async () => {
         tags: ['t-shirt', 'vintage', 'band', 'graphic'],
         featured: false,
         images: [{ url: '/uploads/sample-tshirt.jpg', alt: 'Vintage Band T-Shirt' }]
+      },
+      {
+        name: 'Men\'s Retro Striped Shirt',
+        description: 'Casual button-down shirt with 70s inspired vertical stripes. Breathable fabric perfect for summer.',
+        price: 4500,
+        originalPrice: 6000,
+        category: 'Men',
+        sizes: [
+          { name: 'S', available: true },
+          { name: 'M', available: true },
+          { name: 'L', available: true },
+          { name: 'XL', available: true }
+        ],
+        colors: [
+          { name: 'Mustard/White', hex: '#E1AD01' },
+          { name: 'Navy/White', hex: '#000080' }
+        ],
+        stock: 40,
+        tags: ['shirt', 'retro', 'striped', 'casual'],
+        featured: true,
+        images: [{ url: '/uploads/sample-striped-shirt.jpg', alt: 'Mens Retro Striped Shirt' }]
+      },
+      {
+        name: 'Women\'s High-Waisted Flare Jeans',
+        description: 'Authentic 70s cut flare jeans. Premium stretch denim that highlights the silhouette while remaining comfortable.',
+        price: 9500,
+        originalPrice: 13000,
+        category: 'Women',
+        sizes: [
+          { name: '26', available: true },
+          { name: '28', available: true },
+          { name: '30', available: true },
+          { name: '32', available: false }
+        ],
+        colors: [
+          { name: 'Light Blue', hex: '#ADD8E6' },
+          { name: 'Dark Wash', hex: '#00008B' }
+        ],
+        stock: 25,
+        tags: ['jeans', 'flare', 'denim', 'vintage'],
+        featured: true,
+        images: [{ url: '/uploads/sample-flare-jeans.jpg', alt: 'Flare Jeans' }]
+      },
+      {
+        name: 'Cargo Streetwear Pants',
+        description: 'Utility cargo pants with oversized pockets and adjustable ankle cords.',
+        price: 7500,
+        originalPrice: null,
+        category: 'Streetwear',
+        sizes: [
+          { name: 'S', available: true },
+          { name: 'M', available: true },
+          { name: 'L', available: true }
+        ],
+        colors: [
+          { name: 'Olive Green', hex: '#556B2F' },
+          { name: 'Black', hex: '#000000' }
+        ],
+        stock: 35,
+        tags: ['cargo', 'pants', 'streetwear', 'utility'],
+        featured: false,
+        images: [{ url: '/uploads/sample-cargo-pants.jpg', alt: 'Cargo Pants' }]
+      },
+      {
+        name: 'Vintage Round Sunglasses',
+        description: 'John Lennon style round sunglasses with polarized lenses and metallic frames.',
+        price: 2500,
+        originalPrice: null,
+        category: 'Accessories',
+        sizes: [
+          { name: 'One Size', available: true }
+        ],
+        colors: [
+          { name: 'Gold/Green', hex: '#FFD700' },
+          { name: 'Silver/Black', hex: '#C0C0C0' }
+        ],
+        stock: 60,
+        tags: ['sunglasses', 'accessories', 'vintage'],
+        featured: true,
+        images: [{ url: '/uploads/sample-sunglasses.jpg', alt: 'Round Sunglasses' }]
+      },
+      {
+        name: 'Chunky Platform Boots',
+        description: '90s grunge inspired chunky platform boots in vegan leather.',
+        price: 14000,
+        originalPrice: 16000,
+        category: 'Footwear',
+        sizes: [
+          { name: '36', available: true },
+          { name: '38', available: true },
+          { name: '40', available: true }
+        ],
+        colors: [
+          { name: 'Black', hex: '#000000' },
+          { name: 'Burgundy', hex: '#800020' }
+        ],
+        stock: 12,
+        tags: ['boots', 'footwear', 'platform', 'goth'],
+        featured: false,
+        images: [{ url: '/uploads/sample-platform-boots.jpg', alt: 'Platform Boots' }]
+      },
+      {
+        name: 'Y2K Crop Top',
+        description: 'Rhinestone embellished crop top straight out of the year 2000.',
+        price: 2000,
+        originalPrice: 4500,
+        category: 'Sale',
+        sizes: [
+          { name: 'XS', available: true },
+          { name: 'S', available: true }
+        ],
+        colors: [
+          { name: 'Pink', hex: '#FFC0CB' },
+          { name: 'White', hex: '#FFFFFF' }
+        ],
+        stock: 5,
+        tags: ['y2k', 'crop top', 'sale'],
+        featured: false,
+        images: [{ url: '/uploads/sample-y2k-top.jpg', alt: 'Y2K Crop Top' }]
       }
     ];
 

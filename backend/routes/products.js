@@ -20,7 +20,8 @@ router.get('/', optionalAuth, async (req, res) => {
       maxPrice,
       search,
       featured,
-      tags
+      tags,
+      subCategory
     } = req.query;
 
     // Build query
@@ -28,8 +29,15 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // Category filter
     if (category) {
-      query.category = category;
+      query.category = { $regex: new RegExp(`^${category}$`, 'i') };
     }
+
+    // Sub-category filter
+    if (subCategory) {
+      query.subCategory = { $regex: new RegExp(`^${subCategory}$`, 'i') };
+    }
+
+
 
     // Price range filter
     if (minPrice || maxPrice) {
@@ -77,7 +85,53 @@ router.get('/', optionalAuth, async (req, res) => {
     console.error('Get products error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+// @route   GET /api/products/category/:category
+// @desc    Get products by category
+// @access  Public
+router.get('/category/:category', async (req, res) => {
+  try {
+    const products = await Product.find({
+      category: req.params.category,
+      isActive: true
+    }).sort('-createdAt');
+
+    res.json({
+      success: true,
+      data: products
+    });
+  } catch (error) {
+    console.error('Get category products error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+// @route   GET /api/products/featured
+// @desc    Get featured products
+// @access  Public
+router.get('/featured', async (req, res) => {
+  try {
+    const products = await Product.find({
+      featured: true,
+      isActive: true
+    }).limit(8).sort('-createdAt');
+
+    res.json({
+      success: true,
+      data: products
+    });
+  } catch (error) {
+    console.error('Get featured products error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
     });
   }
 });
@@ -104,7 +158,7 @@ router.get('/:id', async (req, res) => {
     console.error('Get product error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -112,11 +166,13 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/products
 // @desc    Create new product (Admin only)
 // @access  Private/Admin
-router.post('/', protect, authorize('admin'), upload.array('images', 5), handleMulterError, [
+router.post('/', protect, authorize('admin'), upload.array('images', 4), handleMulterError, [
+
   body('name').trim().notEmpty().withMessage('Product name is required'),
   body('description').trim().notEmpty().withMessage('Description is required'),
   body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('category').isIn(['Men', 'Women', 'Streetwear', 'Accessories', 'Footwear', 'Sale']).withMessage('Invalid category'),
+  body('category').isIn(['Men', 'Female', 'Accessories', 'Footwear']).withMessage('Invalid category'),
+
   body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
 ], async (req, res) => {
   try {
@@ -134,6 +190,7 @@ router.post('/', protect, authorize('admin'), upload.array('images', 5), handleM
       price,
       originalPrice,
       category,
+      subCategory,
       sizes,
       colors,
       stock,
@@ -142,16 +199,24 @@ router.post('/', protect, authorize('admin'), upload.array('images', 5), handleM
       featured
     } = req.body;
 
+
     // Process uploaded images
     const images = req.files ? req.files.map(file => ({
       url: `/uploads/${file.filename}`,
       alt: `${name} image`
     })) : [];
 
-    // Parse JSON strings
-    const parsedSizes = sizes ? JSON.parse(sizes) : [];
-    const parsedColors = colors ? JSON.parse(colors) : [];
-    const parsedTags = tags ? JSON.parse(tags) : [];
+    // Parse JSON strings safely
+    const parsedSizes = (sizes && sizes !== 'undefined' && sizes !== 'null') ? JSON.parse(sizes) : [];
+    const parsedColors = (colors && colors !== 'undefined' && colors !== 'null') ? JSON.parse(colors) : [];
+    const parsedTags = (tags && tags !== 'undefined' && tags !== 'null') ? JSON.parse(tags) : [];
+
+
+    // Calculate total stock from sizes if provided
+    let totalStock = parseInt(stock) || 0;
+    if (parsedSizes.length > 0) {
+      totalStock = parsedSizes.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0);
+    }
 
     const product = await Product.create({
       name,
@@ -160,13 +225,16 @@ router.post('/', protect, authorize('admin'), upload.array('images', 5), handleM
       originalPrice,
       images,
       category,
+      subCategory,
       sizes: parsedSizes,
       colors: parsedColors,
-      stock,
+      stock: totalStock,
       sku,
       tags: parsedTags,
       featured: featured === 'true'
     });
+
+
 
     res.status(201).json({
       success: true,
@@ -177,18 +245,23 @@ router.post('/', protect, authorize('admin'), upload.array('images', 5), handleM
     console.error('Create product error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
+
   }
 });
 
 // @route   PUT /api/products/:id
 // @desc    Update product (Admin only)
 // @access  Private/Admin
-router.put('/:id', protect, authorize('admin'), upload.array('images', 5), handleMulterError, [
+router.put('/:id', protect, authorize('admin'), upload.array('images', 4), handleMulterError, [
+
   body('name').optional().trim().notEmpty().withMessage('Product name cannot be empty'),
   body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('category').optional().isIn(['Men', 'Women', 'Streetwear', 'Accessories', 'Footwear', 'Sale']).withMessage('Invalid category')
+  body('category').optional().isIn(['Men', 'Female', 'Accessories', 'Footwear']).withMessage('Invalid category'),
+  body('stock').optional().isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
+
+
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -214,6 +287,7 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 5), handl
       price,
       originalPrice,
       category,
+      subCategory,
       sizes,
       colors,
       stock,
@@ -223,19 +297,33 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 5), handl
       isActive
     } = req.body;
 
+
     // Update fields
-    if (name) product.name = name;
-    if (description) product.description = description;
-    if (price) product.price = price;
+    if (name !== undefined) product.name = name;
+    if (description !== undefined) product.description = description;
+    if (price !== undefined) product.price = price;
     if (originalPrice !== undefined) product.originalPrice = originalPrice;
-    if (category) product.category = category;
-    if (sizes) product.sizes = JSON.parse(sizes);
-    if (colors) product.colors = JSON.parse(colors);
-    if (stock !== undefined) product.stock = stock;
+    if (category !== undefined) product.category = category;
+
+    
+    if (sizes) {
+      const parsedSizes = (sizes && sizes !== 'undefined' && sizes !== 'null') ? JSON.parse(sizes) : [];
+      product.sizes = parsedSizes;
+      // Update total stock from sizes
+      product.stock = parsedSizes.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0);
+    } else if (stock !== undefined) {
+      product.stock = parseInt(stock) || 0;
+    }
+
+    if (colors) product.colors = (colors && colors !== 'undefined' && colors !== 'null') ? JSON.parse(colors) : [];
     if (sku) product.sku = sku;
-    if (tags) product.tags = JSON.parse(tags);
+    if (subCategory) product.subCategory = subCategory;
+    if (tags) product.tags = (tags && tags !== 'undefined' && tags !== 'null') ? JSON.parse(tags) : [];
+
+
     if (featured !== undefined) product.featured = featured === 'true';
     if (isActive !== undefined) product.isActive = isActive === 'true';
+
 
     // Handle new image uploads
     if (req.files && req.files.length > 0) {
@@ -258,7 +346,8 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 5), handl
     console.error('Update product error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
+
     });
   }
 });
@@ -277,9 +366,8 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
       });
     }
 
-    // Soft delete - set isActive to false
-    product.isActive = false;
-    await product.save();
+    // Hard delete
+    await Product.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
@@ -289,55 +377,50 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     console.error('Delete product error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
 
-// @route   GET /api/products/category/:category
-// @desc    Get products by category
-// @access  Public
-router.get('/category/:category', async (req, res) => {
+// @route   DELETE /api/products/:id/images/:imageIndex
+// @desc    Remove an image from a product by index
+// @access  Private/Admin
+router.delete('/:id/images/:index', protect, authorize('admin'), async (req, res) => {
   try {
-    const products = await Product.find({
-      category: req.params.category,
-      isActive: true
-    }).sort('-createdAt');
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    const index = parseInt(req.params.index);
+    if (isNaN(index) || index < 0 || index >= product.images.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image index'
+      });
+    }
+
+    // Remove the image at the specified index
+    product.images.splice(index, 1);
+    await product.save();
 
     res.json({
       success: true,
-      data: products
+      message: 'Image removed successfully',
+      data: product
     });
   } catch (error) {
-    console.error('Get category products error:', error);
+    console.error('Remove image error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
 
-// @route   GET /api/products/featured/
-// @desc    Get featured products
-// @access  Public
-router.get('/featured/', async (req, res) => {
-  try {
-    const products = await Product.find({
-      featured: true,
-      isActive: true
-    }).limit(8).sort('-createdAt');
-
-    res.json({
-      success: true,
-      data: products
-    });
-  } catch (error) {
-    console.error('Get featured products error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
 
 module.exports = router;

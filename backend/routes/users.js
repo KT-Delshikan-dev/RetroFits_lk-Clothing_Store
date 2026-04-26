@@ -10,7 +10,7 @@ const router = express.Router();
 // @access  Private/Admin
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const { page = 1, limit = 20, role } = req.query;
+    const { page = 1, limit = 20, role, sort = '-createdAt' } = req.query;
     
     let query = {};
     if (role) {
@@ -20,7 +20,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     const skip = (page - 1) * limit;
     
     const users = await User.find(query)
-      .sort('-createdAt')
+      .sort(sort)
       .limit(Number(limit))
       .skip(skip);
 
@@ -40,7 +40,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     console.error('Get users error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -67,10 +67,12 @@ router.get('/:id', protect, authorize('admin'), async (req, res) => {
     console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
+
+
 
 // @route   PUT /api/users/addresses
 // @desc    Add/update user address
@@ -135,7 +137,7 @@ router.put('/addresses', protect, [
     console.error('Save address error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -167,7 +169,7 @@ router.delete('/addresses/:label', protect, async (req, res) => {
     console.error('Delete address error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -213,7 +215,86 @@ router.put('/password', protect, [
     console.error('Change password error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+// @route   PUT /api/users/:id
+// @desc    Update user role
+// @access  Private/Admin
+router.put('/:id', protect, authorize('admin'), [
+  body('role').isIn(['user', 'admin']).withMessage('Invalid role')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        errors: errors.array() 
+      });
+    }
+
+    const { role } = req.body;
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      data: user
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+// @route   DELETE /api/users/:id
+// @desc    Delete user
+// @access  Private/Admin
+router.delete('/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Prevent deleting oneself
+    if (user._id.toString() === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete your own admin account'
+      });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
     });
   }
 });

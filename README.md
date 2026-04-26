@@ -16,11 +16,11 @@ A full-stack e-commerce web application for a clothing store called "Retrofits L
 - **Order History**: View past orders and track status
 - **Order Cancellation**: Cancel pending/confirmed orders
 
-### Admin Features
-- **Product Management**: Add, edit, and delete products
-- **Image Upload**: Upload product images
-- **Order Management**: View all orders and update status
-- **Inventory Management**: Track stock levels
+- **Product Management**: Add, edit, and delete products with advanced sorting (Name, Price, Category, Stock)
+- **Image Upload**: Support for large files (up to 30MB) and expanded formats (AVIF, TIFF, BMP, SVG, HEIC)
+- **Order Management**: View all orders, update status, and sort by Date, Amount, or Status
+- **Inventory Management**: Efficient size-based stock tracking with bulk management tools
+- **User Management**: View and manage user accounts with sorting and role updates
 
 ### Payment Options
 - Cash on Delivery (COD)
@@ -31,6 +31,7 @@ A full-stack e-commerce web application for a clothing store called "Retrofits L
 - Category-based browsing (Men, Women, Streetwear, Accessories, Footwear, Sale)
 - SMS confirmation (Mock Twilio integration)
 - Bill generation after purchase
+- Interactive Admin Dashboard with data sorting and bulk inventory tools
 
 ## Tech Stack
 

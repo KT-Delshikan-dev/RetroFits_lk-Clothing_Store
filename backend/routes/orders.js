@@ -58,7 +58,18 @@ router.post('/', protect, [
         });
       }
 
-      if (product.stock < item.quantity) {
+      // Check size-specific stock if applicable
+      if (item.size && product.sizes.length > 0) {
+        const sizeData = product.sizes.find(s => s.name === item.size);
+        if (!sizeData || sizeData.stock < item.quantity) {
+          return res.status(400).json({
+            success: false,
+            message: `Not enough stock for "${product.name}" in size ${item.size}. Available: ${sizeData?.stock || 0}`
+          });
+        }
+        // Decrement size stock
+        sizeData.stock -= item.quantity;
+      } else if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
           message: `Not enough stock for "${product.name}". Available: ${product.stock}`
@@ -77,14 +88,21 @@ router.post('/', protect, [
 
       subtotal += product.price * item.quantity;
 
-      // Update stock
+      // Update total stock
       product.stock -= item.quantity;
+      
+      // Mark sizes as modified for Mongoose to detect changes in the array
+      if (item.size) {
+        product.markModified('sizes');
+      }
+      
       await product.save();
+
     }
 
     // Calculate pricing
     const shipping = subtotal > 5000 ? 0 : 250; // Free shipping over LKR 5000
-    const tax = Math.round(subtotal * 0.18); // 18% tax
+    const tax = 0; // Removed tax
     const discount = 0;
     const total = subtotal + shipping + tax - discount;
 
@@ -129,7 +147,7 @@ router.post('/', protect, [
     console.error('Create order error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -170,7 +188,7 @@ router.get('/', protect, async (req, res) => {
     console.error('Get orders error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -206,7 +224,7 @@ router.get('/:id', protect, async (req, res) => {
     console.error('Get order error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -261,7 +279,7 @@ router.put('/:id/status', protect, authorize('admin'), [
     console.error('Update order status error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -305,7 +323,7 @@ router.put('/:id/payment', protect, async (req, res) => {
     console.error('Update payment error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -362,7 +380,7 @@ router.delete('/:id/cancel', protect, async (req, res) => {
     console.error('Cancel order error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -372,7 +390,7 @@ router.delete('/:id/cancel', protect, async (req, res) => {
 // @access  Private/Admin
 router.get('/admin/all', protect, authorize('admin'), async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
+    const { status, page = 1, limit = 20, sort = '-createdAt' } = req.query;
     
     let query = {};
     if (status) {
@@ -383,7 +401,7 @@ router.get('/admin/all', protect, authorize('admin'), async (req, res) => {
     
     const orders = await Order.find(query)
       .populate('user', 'name email phone')
-      .sort('-createdAt')
+      .sort(sort)
       .limit(Number(limit))
       .skip(skip);
 
@@ -415,7 +433,7 @@ router.get('/admin/all', protect, authorize('admin'), async (req, res) => {
     console.error('Get all orders error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
     });
   }
 });
@@ -451,7 +469,36 @@ router.post('/:id/sms', protect, authorize('admin'), async (req, res) => {
     console.error('Send SMS error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+// @route   DELETE /api/orders/:id
+// @desc    Delete order (Admin only)
+// @access  Private/Admin
+router.delete('/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    await Order.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Order deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete order error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
     });
   }
 });
