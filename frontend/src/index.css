@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Outfit', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Product card hover effect */
+.product-card {
+  transition: all 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Button styles */
+.btn-primary {
+  @apply bg-primary-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+}
+
+.btn-secondary {
+  @apply bg-secondary-200 text-secondary-800 px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-secondary-300 focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2;
+}
+
+.btn-outline {
+  @apply border-2 border-primary-600 text-primary-600 px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-primary-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+}
+
+/* Input styles */
+.input-field {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+}
+
+.input-field:disabled {
+  @apply bg-gray-100 cursor-not-allowed;
+}
+
+.input-field::placeholder {
+  @apply text-gray-400;
+}
+
+/* Container */
+.container-custom {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Form helpers */
+.form-group {
+  @apply space-y-2;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-error {
+  @apply mt-1 text-sm text-red-600;
+}
+
+.form-success {
+  @apply mt-1 text-sm text-green-600;
+}
