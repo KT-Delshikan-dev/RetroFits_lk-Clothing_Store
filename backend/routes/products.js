@@ -29,7 +29,15 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // Category filter
     if (category) {
-      query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+      const categoryLower = category.toLowerCase();
+      if (categoryLower === 'men' || categoryLower === 'women') {
+        query.$or = [
+          { category: { $regex: new RegExp(`^${category}$`, 'i') } },
+          { subCategory: { $regex: new RegExp(`^kits$`, 'i') } }
+        ];
+      } else {
+        query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+      }
     }
 
     // Sub-category filter
@@ -171,7 +179,7 @@ router.post('/', protect, authorize('admin'), upload.array('images', 4), handleM
   body('name').trim().notEmpty().withMessage('Product name is required'),
   body('description').trim().notEmpty().withMessage('Description is required'),
   body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('category').isIn(['Men', 'Female', 'Accessories', 'Footwear']).withMessage('Invalid category'),
+  body('category').isIn(['Men', 'Women', 'Accessories', 'Footwear']).withMessage('Invalid category'),
 
   body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
 ], async (req, res) => {
@@ -258,7 +266,7 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 4), handl
 
   body('name').optional().trim().notEmpty().withMessage('Product name cannot be empty'),
   body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('category').optional().isIn(['Men', 'Female', 'Accessories', 'Footwear']).withMessage('Invalid category'),
+  body('category').optional().isIn(['Men', 'Women', 'Accessories', 'Footwear']).withMessage('Invalid category'),
   body('stock').optional().isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
 
 
