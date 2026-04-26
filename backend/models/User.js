@@ -50,6 +50,16 @@ const UserSchema = new mongoose.Schema({
       default: false
     }
   }],
+  savedCards: [{
+    cardHolder: String,
+    cardNumber: String, // Masked or partial for security in real apps
+    expiryDate: String,
+    cardType: String,
+    isDefault: {
+      type: Boolean,
+      default: false
+    }
+  }],
   phoneVerificationCode: {
     type: String
   },

@@ -220,6 +220,105 @@ router.put('/password', protect, [
   }
 });
 
+// @route   PUT /api/users/cards
+// @desc    Add/update user card
+// @access  Private
+router.put('/cards', protect, [
+  body('cardHolder').trim().notEmpty().withMessage('Card holder name is required'),
+  body('cardNumber').trim().notEmpty().withMessage('Card number is required'),
+  body('expiryDate').trim().notEmpty().withMessage('Expiry date is required'),
+  body('cardType').trim().notEmpty().withMessage('Card type is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        errors: errors.array() 
+      });
+    }
+
+    const { cardHolder, cardNumber, expiryDate, cardType, isDefault } = req.body;
+    const user = await User.findById(req.user.id);
+
+    // Mask card number for storage (keep last 4 digits)
+    const maskedNumber = cardNumber.replace(/\s/g, '');
+    const displayCardNumber = `**** **** **** ${maskedNumber.slice(-4)}`;
+
+    // Check if card already exists
+    const existingIndex = user.savedCards.findIndex(c => c.cardNumber.endsWith(maskedNumber.slice(-4)));
+    
+    const newCard = {
+      cardHolder,
+      cardNumber: displayCardNumber,
+      expiryDate,
+      cardType,
+      isDefault: isDefault || false
+    };
+
+    if (existingIndex >= 0) {
+      user.savedCards[existingIndex] = newCard;
+    } else {
+      user.savedCards.push(newCard);
+    }
+
+    if (isDefault) {
+      user.savedCards.forEach((c, idx) => {
+        if (idx !== (existingIndex >= 0 ? existingIndex : user.savedCards.length - 1)) {
+          c.isDefault = false;
+        }
+      });
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Card saved successfully',
+      data: user.savedCards
+    });
+  } catch (error) {
+    console.error('Save card error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+// @route   DELETE /api/users/cards/:cardNumber
+// @desc    Delete user card
+// @access  Private
+router.delete('/cards/:cardNumber', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    const cardIndex = user.savedCards.findIndex(c => c.cardNumber === req.params.cardNumber);
+    
+    if (cardIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Card not found'
+      });
+    }
+
+    user.savedCards.splice(cardIndex, 1);
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Card deleted successfully',
+      data: user.savedCards
+    });
+  } catch (error) {
+    console.error('Delete card error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
+    });
+  }
+});
+
 // @route   PUT /api/users/:id
 // @desc    Update user role
 // @access  Private/Admin
