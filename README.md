@@ -243,7 +243,7 @@ This project is licensed under the ISC License.
 
 For support or queries, please contact:
 - Email: info@retrofits.lk
-- Phone: +94 11 234 5678
+- Phone: +94 076 0929 712
 
 ---
 
