@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -8,39 +8,41 @@ const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({});
-  const [filters, setFilters] = useState({
-    category: '',
-    subCategory: '',
-    search: '',
-    sort: '-createdAt'
-  });
-
-
   const location = useLocation();
+  const navigate = useNavigate();
   const { addToCart } = useCart();
   const { user } = useAuth();
 
+  const [filters, setFilters] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      category: params.get('category') || '',
+      subCategory: params.get('subCategory') || '',
+      search: params.get('search') || '',
+      sort: params.get('sort') || '-createdAt',
+      featured: params.get('featured') || ''
+    };
+  });
+
+  // Sync state with URL changes (e.g., clicking navbar while on products page)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const category = params.get('category');
-    const subCategory = params.get('subCategory');
-    const search = params.get('search');
-    const featured = params.get('featured');
-
-    setFilters(prev => ({
-      ...prev,
-      category: category || '',
-      subCategory: subCategory || '',
-      search: search || '',
-      featured: featured || ''
-    }));
+    setFilters({
+      category: params.get('category') || '',
+      subCategory: params.get('subCategory') || '',
+      search: params.get('search') || '',
+      sort: params.get('sort') || '-createdAt',
+      featured: params.get('featured') || ''
+    });
   }, [location.search]);
 
   useEffect(() => {
-    fetchProducts();
+    const controller = new AbortController();
+    fetchProducts(controller.signal);
+    return () => controller.abort();
   }, [filters]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (signal) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -48,24 +50,30 @@ const Products = () => {
       if (filters.subCategory) params.append('subCategory', filters.subCategory);
       if (filters.search) params.append('search', filters.search);
       if (filters.sort) params.append('sort', filters.sort);
+      if (filters.featured) params.append('featured', filters.featured);
 
-
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/products?${params.toString()}`);
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/products?${params.toString()}`, { signal });
       setProducts(response.data.data);
       setPagination(response.data.pagination);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      if (error.name !== 'CanceledError') {
+        console.error('Error fetching products:', error);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => {
-      const newFilters = { ...prev, [key]: value };
-      if (key === 'category') newFilters.subCategory = ''; // Reset subCategory when category changes
-      return newFilters;
+    const newFilters = { ...filters, [key]: value };
+    if (key === 'category') newFilters.subCategory = '';
+    
+    // Update URL as well
+    const params = new URLSearchParams();
+    Object.keys(newFilters).forEach(k => {
+      if (newFilters[k]) params.append(k, newFilters[k]);
     });
+    navigate(`/products?${params.toString()}`);
   };
 
   const categories = ['Men', 'Women', 'Accessories', 'Footwear'];
