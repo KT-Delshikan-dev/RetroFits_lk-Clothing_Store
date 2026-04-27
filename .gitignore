@@ -25,3 +25,9 @@ yarn-error.log*
 # uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Python
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
