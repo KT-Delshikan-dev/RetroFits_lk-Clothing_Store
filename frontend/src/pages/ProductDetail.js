@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +22,7 @@ const ProductDetail = () => {
 
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProduct();
@@ -106,17 +107,29 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="container-custom py-8">
         {/* Breadcrumb */}
-        <nav className="mb-8">
-          <ol className="flex items-center space-x-2 text-sm text-gray-500">
-            <li><Link to="/" className="hover:text-gray-700">Home</Link></li>
-            <li>/</li>
-            <li><Link to="/products" className="hover:text-gray-700">Products</Link></li>
-            <li>/</li>
-            <li><Link to={`/products?category=${product.category.toLowerCase()}`} className="hover:text-gray-700">{product.category}</Link></li>
-            <li>/</li>
-            <li className="text-gray-900 font-medium">{product.name}</li>
-          </ol>
-        </nav>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center text-gray-600 hover:text-primary-600 transition-colors font-medium group"
+          >
+            <svg className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Go Back
+          </button>
+          
+          <nav aria-label="Breadcrumb">
+            <ol className="flex items-center space-x-2 text-sm text-gray-500">
+              <li><Link to="/" className="hover:text-gray-700">Home</Link></li>
+              <li className="text-gray-400">/</li>
+              <li><Link to="/products" className="hover:text-gray-700">Products</Link></li>
+              <li className="text-gray-400">/</li>
+              <li><Link to={`/products?category=${product.category.toLowerCase()}`} className="hover:text-gray-700">{product.category}</Link></li>
+              <li className="text-gray-400">/</li>
+              <li className="text-gray-900 font-medium truncate max-w-[150px] md:max-w-xs">{product.name}</li>
+            </ol>
+          </nav>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Images */}

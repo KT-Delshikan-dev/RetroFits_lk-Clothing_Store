@@ -34,15 +34,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // Category filter
     if (category) {
-      const categoryLower = category.toLowerCase();
-      if (categoryLower === 'men' || categoryLower === 'women') {
-        query.$or = [
-          { category: { $regex: new RegExp(`^${category}$`, 'i') } },
-          { subCategory: { $regex: new RegExp(`^kits$`, 'i') } }
-        ];
-      } else {
-        query.category = { $regex: new RegExp(`^${category}$`, 'i') };
-      }
+      query.category = { $regex: new RegExp(`^${category}$`, 'i') };
     }
 
     // Sub-category filter
@@ -67,6 +59,15 @@ router.get('/', optionalAuth, async (req, res) => {
     // Tags filter
     if (tags) {
       query.tags = { $in: tags.split(',') };
+    }
+
+    // New Arrivals filter (Last 14 days + Featured)
+    if (req.query.newArrivals === 'true') {
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      query.createdAt = { $gte: fourteenDaysAgo };
+      query.featured = true; // Must be featured to be in new arrivals
+      query.excludeFromNewArrivals = { $ne: true };
     }
 
     // Search functionality
@@ -96,6 +97,42 @@ router.get('/', optionalAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Get products error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+// @route   GET /api/products/subcategories
+// @desc    Get all unique subcategories grouped by category
+// @access  Public
+router.get('/subcategories', async (req, res) => {
+  try {
+    const subcategories = await Product.aggregate([
+      { $match: { isActive: true } },
+      {
+        $group: {
+          _id: "$category",
+          subCategories: { $addToSet: "$subCategory" }
+        }
+      }
+    ]);
+
+    const result = {};
+    subcategories.forEach(item => {
+      if (item._id) {
+        // Filter out null/empty strings
+        result[item._id] = item.subCategories.filter(sub => sub && sub.trim() !== '');
+      }
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Get subcategories error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Server error'
@@ -134,7 +171,7 @@ router.get('/featured', async (req, res) => {
     const products = await Product.find({
       featured: true,
       isActive: true
-    }).limit(8).sort('-createdAt');
+    }).limit(12).sort('category -createdAt');
 
     res.json({
       success: true,
@@ -184,7 +221,7 @@ router.post('/', protect, authorize('admin'), upload.array('images', 4), handleM
   body('name').trim().notEmpty().withMessage('Product name is required'),
   body('description').trim().notEmpty().withMessage('Description is required'),
   body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('category').isIn(['Men', 'Women', 'Accessories', 'Footwear']).withMessage('Invalid category'),
+  body('category').isIn(['Men', 'Women', 'Accessories', 'Footwear', 'Jerseys']).withMessage('Invalid category'),
 
   body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
 ], async (req, res) => {
@@ -271,7 +308,7 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 4), handl
 
   body('name').optional().trim().notEmpty().withMessage('Product name cannot be empty'),
   body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('category').optional().isIn(['Men', 'Women', 'Accessories', 'Footwear']).withMessage('Invalid category'),
+  body('category').optional().isIn(['Men', 'Women', 'Accessories', 'Footwear', 'Jerseys']).withMessage('Invalid category'),
   body('stock').optional().isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
 
 

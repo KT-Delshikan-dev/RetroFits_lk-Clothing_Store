@@ -24,7 +24,7 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const categories = ['Men', 'Women', 'Accessories', 'Footwear'];
+  const categories = ['Men', 'Women', 'Accessories', 'Footwear', 'Jerseys'];
 
 
   const adminLinks = [
@@ -49,21 +49,34 @@ const Navbar = () => {
             {isAdmin ? (
               <Link
                 to="/admin"
-                className="text-white hover:text-primary-400 transition-colors font-bold text-lg border-b-2 border-primary-500 pb-1"
+                className="text-white hover:text-secondary-400 transition-colors font-bold text-lg border-b-2 border-secondary-500 pb-1"
               >
                 Admin Panel
               </Link>
             ) : (
-              categories.map(category => (
+              <>
                 <Link
-                  key={category}
-                  to={`/products?category=${category}`}
-                  className="text-gray-300 hover:text-primary-400 transition-colors font-medium"
+                  to="/"
+                  className="text-gray-300 hover:text-secondary-400 transition-colors font-medium"
                 >
-                  {category}
+                  Home
                 </Link>
-              ))
-
+                <Link
+                  to="/products?newArrivals=true"
+                  className="text-gray-300 hover:text-secondary-400 transition-colors font-medium whitespace-nowrap"
+                >
+                  New Arrivals
+                </Link>
+                {categories.map(category => (
+                  <Link
+                    key={category}
+                    to={`/products?category=${category}`}
+                    className="text-gray-300 hover:text-secondary-400 transition-colors font-medium"
+                  >
+                    {category}
+                  </Link>
+                ))}
+              </>
             )}
           </div>
 
@@ -74,13 +87,13 @@ const Navbar = () => {
             {/* Cart Button */}
             <button
               onClick={openCart}
-              className="relative p-2 text-gray-300 hover:text-primary-400 transition-colors"
+              className="relative p-2 text-gray-300 hover:text-secondary-400 transition-colors"
             >
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               {getCartCount() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-secondary-500 text-black text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {getCartCount()}
                 </span>
               )}
@@ -89,7 +102,7 @@ const Navbar = () => {
             {/* User Menu */}
             {isAuthenticated ? (
               <div className="relative group">
-                <button className="flex items-center space-x-2 p-2 text-gray-300 hover:text-primary-400 transition-colors">
+                <button className="flex items-center space-x-2 p-2 text-gray-300 hover:text-secondary-400 transition-colors">
                   <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden border border-gray-700">
                     {user.profileImage ? (
                       <img 
@@ -139,7 +152,7 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/login"
-                className="btn-primary py-2 px-4"
+                className="text-gray-300 hover:text-secondary-400 transition-colors font-medium px-2 py-1"
               >
                 Login
               </Link>
@@ -210,17 +223,32 @@ const Navbar = () => {
                   Admin Panel
                 </Link>
               ) : (
-                categories.map(category => (
+                <>
                   <Link
-                    key={category}
-                    to={`/products?category=${category}`}
+                    to="/"
                     className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {category}
+                    Home
                   </Link>
-                ))
-
+                  <Link
+                    to="/products?newArrivals=true"
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 font-bold border-l-4 border-secondary-500"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    New Arrivals
+                  </Link>
+                  {categories.map(category => (
+                    <Link
+                      key={category}
+                      to={`/products?category=${category}`}
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {category}
+                    </Link>
+                  ))}
+                </>
               )}
 
               {isAuthenticated ? (

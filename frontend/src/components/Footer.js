@@ -10,12 +10,12 @@ const Footer = () => {
           <div>
             <Link to="/" className="flex items-center mb-4">
               <span className="text-2xl font-serif font-bold text-white">
-                Retrofits<span className="text-primary-400">LK</span>
+                AVENZA<span className="text-secondary-500">.</span>
               </span>
             </Link>
             <p className="text-gray-400 text-sm">
-              Your destination for vintage-inspired clothing with modern comfort. 
-              Quality fashion that stands the test of time.
+              Defining the pinnacle of high-end fashion. 
+              Exquisite craftsmanship and sophisticated design for the discerning individual.
             </p>
           </div>
 
@@ -95,7 +95,7 @@ const Footer = () => {
                 <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span>info@retrofits.lk</span>
+                <span>info@avenza.lk</span>
               </li>
             </ul>
           </div>
@@ -105,7 +105,7 @@ const Footer = () => {
         <div className="border-t border-gray-800 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} Retrofits LK. All rights reserved.
+              © {new Date().getFullYear()} AVENZA. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <button className="text-gray-400 hover:text-white transition-colors">

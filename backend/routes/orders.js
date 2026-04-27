@@ -92,10 +92,14 @@ router.post('/', protect, [
 
       // Update total stock
       product.stock -= item.quantity;
-      
-      // Mark sizes as modified for Mongoose to detect changes in the array
-      if (item.size) {
-        product.markModified('sizes');
+
+      // Update size-specific stock if applicable
+      if (item.size && product.sizes && product.sizes.length > 0) {
+        const sizeObj = product.sizes.find(s => s.name === item.size);
+        if (sizeObj) {
+          sizeObj.stock -= item.quantity;
+          product.markModified('sizes');
+        }
       }
       
       console.log(`[DIAGNOSTIC] Saving product ${product.name}. Price: ${product.price}, Stock: ${product.stock}`);
@@ -410,11 +414,11 @@ router.delete('/:id/cancel', protect, async (req, res) => {
       });
     }
 
-    // Can only cancel pending or confirmed orders
-    if (!['pending', 'confirmed'].includes(order.status)) {
+    // Can only cancel pending orders
+    if (order.status !== 'pending') {
       return res.status(400).json({
         success: false,
-        message: 'Cannot cancel this order'
+        message: 'Cannot cancel an order that is already being processed'
       });
     }
 
@@ -422,19 +426,31 @@ router.delete('/:id/cancel', protect, async (req, res) => {
     for (const item of order.items) {
       const product = await Product.findById(item.product);
       if (product) {
+        // Restore overall stock
+        const oldStock = product.stock;
         product.stock += item.quantity;
+        console.log(`[INVENTORY] Restored total stock for ${product.name}: ${oldStock} -> ${product.stock}`);
+        
+        // Restore size-specific stock if applicable
+        if (item.size && product.sizes && product.sizes.length > 0) {
+          const sizeObj = product.sizes.find(s => s.name === item.size);
+          if (sizeObj) {
+            const oldSizeStock = sizeObj.stock;
+            sizeObj.stock += item.quantity;
+            console.log(`[INVENTORY] Restored size stock for ${product.name} (${item.size}): ${oldSizeStock} -> ${sizeObj.stock}`);
+          }
+        }
+        
         await product.save();
       }
     }
 
-    order.status = 'cancelled';
-    order.payment.status = 'refunded';
-    await order.save();
+    // Delete the order instead of just changing status
+    await Order.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
-      message: 'Order cancelled successfully',
-      data: order
+      message: 'Order cancelled and removed successfully'
     });
   } catch (error) {
     console.error('Cancel order error:', error);

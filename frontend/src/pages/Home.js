@@ -52,7 +52,7 @@ const Home = () => {
 
   const fetchFeaturedProducts = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/products/featured`);
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/products?featured=true&limit=8`);
       setFeaturedProducts(response.data.data);
     } catch (error) {
       console.error('Error fetching featured products:', error);
@@ -75,44 +75,44 @@ const Home = () => {
       <section className="relative bg-gray-950 text-white min-h-[85vh] flex items-center">
         <div className="absolute inset-0 overflow-hidden">
           <img
-            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=900&fit=crop"
-            alt="Hero background"
-            className="w-full h-full object-cover opacity-50 transform scale-105 hover:scale-100 transition-transform duration-[10s] ease-in-out"
+            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=900&fit=crop"
+            alt="High Fashion 2026"
+            className="w-full h-full object-cover opacity-60 transform scale-105 hover:scale-100 transition-transform duration-[15s] ease-out"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/60 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-900/40 via-gray-900/70 to-gray-950"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-950/80 via-transparent to-transparent"></div>
         </div>
         <div className="relative container-custom py-24 md:py-32">
            <div className="max-w-2xl transform translate-y-[-10%]">
             {isAdmin ? (
               <>
-                <span className="text-primary-400 font-semibold tracking-[0.3em] uppercase text-sm mb-4 block">Administrator Portal</span>
-                <h1 className="text-5xl md:text-7xl font-serif font-black mb-6 leading-tight drop-shadow-lg">
-                  Welcome Back,<br />{user?.name.split(' ')[0]}!
+                <span className="text-primary-400 font-bold tracking-[0.4em] uppercase text-xs mb-6 block">Management Console • 2026</span>
+                <h1 className="text-6xl md:text-8xl font-serif font-black mb-8 leading-tight drop-shadow-2xl text-white">
+                  Luxury &<br /><span className="text-secondary-500">Excellence.</span>
                 </h1>
-                <p className="text-lg md:text-xl text-gray-200 mb-10 max-w-lg font-light leading-relaxed">
-                  Manage your store operations, view reports, and handle customer orders from the administrative dashboard.
+                <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-lg font-light leading-relaxed tracking-wide">
+                  Welcome, {user?.name.split(' ')[0]}. Command the future of AVENZA with precision analytics and inventory mastery.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link to="/admin" className="bg-primary-600 text-white px-8 py-4 rounded font-bold hover:bg-primary-700 transition-colors text-center uppercase tracking-wide text-sm shadow-xl">
-                    Open Admin Dashboard
+                <div className="flex flex-col sm:flex-row gap-6">
+                  <Link to="/admin" className="bg-primary-600 text-white px-10 py-5 rounded-full font-bold hover:bg-primary-700 transition-all transform hover:scale-105 text-center uppercase tracking-widest text-xs shadow-2xl">
+                    Executive Dashboard
                   </Link>
                 </div>
               </>
             ) : (
               <>
-                <span className="text-primary-400 font-semibold tracking-[0.3em] uppercase text-sm mb-4 block">New Collection 2024</span>
-                <h1 className="text-5xl md:text-7xl font-serif font-black mb-6 leading-tight drop-shadow-lg">
-                  Retro Style,<br />Modern Comfort.
+                <span className="text-secondary-500 font-bold tracking-[0.5em] uppercase text-xs mb-6 block">Sophistication Redefined • Collection 2026</span>
+                <h1 className="text-6xl md:text-8xl font-serif font-black mb-8 leading-tight drop-shadow-2xl">
+                  The Essence of<br /><span className="text-white opacity-90 italic">Avenza.</span>
                 </h1>
-                <p className="text-lg md:text-xl text-gray-200 mb-10 max-w-lg font-light leading-relaxed">
-                  Discover our curated collection of vintage-inspired clothing that brings 
-                  timeless elegance back to your everyday wardrobe.
+                <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-lg font-light leading-relaxed tracking-wide">
+                  Experience the fusion of exquisite tailoring and modern sophistication. 
+                  Our 2026 collection celebrates the pinnacle of style with a vision for the future.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link to="/products" className="bg-white text-gray-900 px-8 py-4 rounded font-bold hover:bg-gray-200 transition-colors text-center uppercase tracking-wide text-sm shadow-xl">
-                    Shop The Collection
+                <div className="flex flex-col sm:flex-row gap-6">
+                  <Link to="/products" className="btn-silver px-10 py-4 rounded-full uppercase tracking-widest text-xs">
+                    Explore Collection
                   </Link>
-
                 </div>
               </>
             )}
@@ -176,7 +176,7 @@ const Home = () => {
             <>
               <div className="flex justify-between items-center mb-12">
                 <h2 className="text-3xl font-serif font-bold">Featured Products</h2>
-                <Link to="/products?featured=true" className="text-primary-600 hover:text-primary-700 font-medium">
+                <Link to="/products?featured=true" className="text-primary-600 hover:text-primary-700 font-medium tracking-wide">
                   View All →
                 </Link>
               </div>

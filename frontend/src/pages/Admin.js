@@ -12,6 +12,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
   const [orders, setOrders] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subCategoriesMap, setSubCategoriesMap] = useState({});
   const [notification, setNotification] = useState(null);
   
   const showNotification = (message, type = 'success') => {
@@ -45,42 +46,28 @@ const Admin = ({ activeTabOverride = 'products' }) => {
     sizes: [],
     colors: [],
     tags: [],
-    featured: false
+    featured: false,
+    excludeFromNewArrivals: false
   });
 
   const getAvailableSizes = () => {
     const category = productFormData.category;
-    const sub = productFormData.subCategory;
 
+    // Footwear logic
     if (category === 'Footwear') {
-      return ['6', '7', '8', '9', '10'];
+      return ['6', '7', '8', '9', '10', '11'];
     }
-    if (category === 'Accessories') {
-      return [];
-    }
-    
-    // Men/Women size logic
-    if (category === 'Men') {
-      if (['T-Shirts', 'Shirts', 'Jeans', 'Shorts', 'Kits'].includes(sub)) {
-        return ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-      }
-      if (sub === 'Other') return ['One Size'];
-    }
-    
-    if (category === 'Women') {
-      if (['T-Shirts', 'Frocks', 'Jeans', 'Kits'].includes(sub)) {
-        return ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-      }
-      if (sub === 'Other') return ['One Size'];
-    }
-    
-    // Fallback for when subcategory isn't selected or for other categories
+
+    // Clothing logic (Men/Women)
     if (['Men', 'Women'].includes(category)) {
-      return ['One Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
+      // Accessories usually don't have sizes, or are "One Size"
+      if (category === 'Accessories') return ['One Size'];
+      
+      // Standard clothing sizes
+      return ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
     }
 
-
-    return [];
+    return ['One Size'];
   };
 
   const getChartData = () => {
@@ -104,18 +91,20 @@ const Admin = ({ activeTabOverride = 'products' }) => {
   };
 
   const getSubCategories = (category) => {
-    switch (category) {
-      case 'Men':
-        return ['T-Shirts', 'Shirts', 'Jeans', 'Shorts', 'Kits', 'Other'];
-      case 'Women':
-        return ['T-Shirts', 'Frocks', 'Jeans', 'Kits', 'Other'];
-      case 'Footwear':
-        return ['Formals', 'Casuals', 'Other'];
-      case 'Accessories':
-        return ['Wallets', 'Chains', 'Sunglasses', 'Other'];
-      default:
-        return ['Other'];
-    }
+    // Combine hardcoded defaults with existing ones from DB
+    const defaults = {
+      'Men': ['Casual Wear', 'Formal Wear', 'Activewear', 'Outerwear', 'Denim', 'Other'],
+      'Women': ['Dresses & Gowns', 'Tops & Blouses', 'Skirts & Trousers', 'Activewear', 'Outerwear', 'Other'],
+      'Footwear': ['Sneakers', 'Formal Shoes', 'Boots', 'Sandals & Slides', 'Other'],
+      'Accessories': ['Watches', 'Jewelry', 'Bags & Wallets', 'Belts', 'Sunglasses', 'Other'],
+      'Jerseys': ['National Team', 'Club', 'Retro', 'Training', 'Other']
+    };
+
+    const existing = subCategoriesMap[category] || [];
+    const defaultList = defaults[category] || ['Other'];
+    
+    // Union of both, unique values
+    return Array.from(new Set([...defaultList, ...existing]));
   };
 
 
@@ -151,6 +140,12 @@ const Admin = ({ activeTabOverride = 'products' }) => {
         const sort = `${sortConfig.users.order === 'desc' ? '-' : ''}${sortConfig.users.field}`;
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/users?sort=${sort}`, { headers });
         setUsersList(response.data.data || []);
+      }
+
+      // Fetch subcategories for the product form
+      const subCatResponse = await axios.get(`${process.env.REACT_APP_API_URL}/products/subcategories`);
+      if (subCatResponse.data.success) {
+        setSubCategoriesMap(subCatResponse.data.data);
       }
 
     } catch (error) {
@@ -505,17 +500,21 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sub-Category / Type</label>
-                  <select
-                    name="subCategory"
-                    value={productFormData.subCategory}
-                    onChange={handleProductInputChange}
-                    className="input-field"
-                  >
-                    <option value="">Select Type</option>
-                    {getSubCategories(productFormData.category).map(sub => (
-                      <option key={sub} value={sub}>{sub}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      list="subcategory-list"
+                      name="subCategory"
+                      value={productFormData.subCategory}
+                      onChange={handleProductInputChange}
+                      placeholder="Select or type new sub-category"
+                      className="input-field"
+                    />
+                    <datalist id="subcategory-list">
+                      {getSubCategories(productFormData.category).map(sub => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -641,15 +640,28 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                 </div>
 
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="featured"
-                    checked={productFormData.featured}
-                    onChange={handleProductInputChange}
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 text-sm font-medium text-gray-700">Featured Product</label>
+                <div className="flex flex-col space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="featured"
+                      checked={productFormData.featured}
+                      onChange={handleProductInputChange}
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    />
+                    <label className="ml-2 text-sm font-medium text-gray-700">Featured Product (Shows on Home)</label>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="excludeFromNewArrivals"
+                      checked={productFormData.excludeFromNewArrivals}
+                      onChange={handleProductInputChange}
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    />
+                    <label className="ml-2 text-sm font-medium text-gray-700">Exclude from New Arrivals (Manual Override)</label>
+                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">

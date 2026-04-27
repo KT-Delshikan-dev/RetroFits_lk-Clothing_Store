@@ -1,8 +1,8 @@
-# Retrofits LK - Clothing E-commerce Web Application
+# AVENZA - Clothing E-commerce Web Application
 
-A full-stack e-commerce web application for a clothing store called "Retrofits LK". Built with React, Node.js, Express, and MongoDB.
+A full-stack e-commerce web application for a clothing store called "AVENZA". Built with React, Node.js, Express, and MongoDB.
 
-![Retrofits LK](https://img.shields.io/badge/Retrofits-LK-primary)
+![AVENZA](https://img.shields.io/badge/AVENZA-LK-primary)
 ![License](https://img.shields.io/badge/license-ISC-blue)
 
 ## Features
@@ -247,4 +247,4 @@ For support or queries, please contact:
 
 ---
 
-Built with ❤️ by Retrofits LK Team# RetroFits_lk-Clothing_Store
+Built with ❤️ by AVENZA Team# RetroFits_lk-Clothing_Store

@@ -26,7 +26,7 @@ const ProductSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Category is required'],
-    enum: ['Men', 'Women', 'Accessories', 'Footwear']
+    enum: ['Men', 'Women', 'Accessories', 'Footwear', 'Jerseys']
   },
 
   subCategory: {
@@ -69,6 +69,10 @@ const ProductSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  excludeFromNewArrivals: {
+    type: Boolean,
+    default: false
   },
   ratings: {
     average: {

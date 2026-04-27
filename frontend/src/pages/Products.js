@@ -12,6 +12,7 @@ const Products = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const [subCategoriesMap, setSubCategoriesMap] = useState({});
 
   const [filters, setFilters] = useState(() => {
     const params = new URLSearchParams(location.search);
@@ -37,6 +38,20 @@ const Products = () => {
       page: params.get('page') || '1'
     });
   }, [location.search]);
+
+  useEffect(() => {
+    const fetchSubCategories = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/products/subcategories`);
+        if (response.data.success) {
+          setSubCategoriesMap(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching subcategories:', error);
+      }
+    };
+    fetchSubCategories();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -89,20 +104,13 @@ const Products = () => {
     navigate(`/products?${params.toString()}`);
   };
 
-  const categories = ['Men', 'Women', 'Accessories', 'Footwear'];
+  const categories = ['Men', 'Women', 'Accessories', 'Footwear', 'Jerseys'];
   
   const getSubCategories = (category) => {
     const cat = categories.find(c => c.toLowerCase() === category?.toLowerCase());
     if (!cat) return [];
     
-    switch (cat) {
-      case 'Men': return ['T-Shirts', 'Shirts', 'Jeans', 'Shorts', 'Kits', 'Other'];
-      case 'Women': return ['T-Shirts', 'Frocks', 'Jeans', 'Kits', 'Other'];
-      case 'Footwear': return ['Formals', 'Casuals', 'Other'];
-      case 'Accessories': return ['Wallets', 'Chains', 'Sunglasses', 'Other'];
-
-      default: return [];
-    }
+    return subCategoriesMap[cat] || [];
   };
 
   const sortOptions = [
@@ -118,13 +126,41 @@ const Products = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container-custom py-8">
+        {/* Back Button and Breadcrumbs */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center text-gray-600 hover:text-primary-600 transition-colors font-medium group"
+          >
+            <svg className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Go Back
+          </button>
+          
+          <nav aria-label="Breadcrumb">
+            <ol className="flex items-center space-x-2 text-sm text-gray-500">
+              <li><Link to="/" className="hover:text-gray-700">Home</Link></li>
+              <li className="text-gray-400">/</li>
+              <li className="text-gray-900 font-medium">Shop</li>
+              {filters.category && (
+                <>
+                  <li className="text-gray-400">/</li>
+                  <li className="text-gray-900 font-medium">{filters.category}</li>
+                </>
+              )}
+            </ol>
+          </nav>
+        </div>
+
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-serif font-bold text-gray-900 mb-2">
               {filters.search ? `Search: "${filters.search}"` : 
-               filters.subCategory ? `${activeCategory || filters.category} - ${filters.subCategory}` :
-               activeCategory ? activeCategory : 
+               filters.sort === '-createdAt' && !filters.category ? 'New Arrivals' :
+               filters.subCategory ? `${filters.category} - ${filters.subCategory}` :
+               filters.category ? filters.category : 
                'All Products'}
             </h1>
             <p className="text-gray-600">

@@ -36,7 +36,7 @@ app.use('/api', aiRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Retrofits LK API is running' });
+  res.json({ status: 'OK', message: 'AVENZA API is running' });
 });
 
 // Error handling middleware
