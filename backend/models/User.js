@@ -66,6 +66,12 @@ const UserSchema = new mongoose.Schema({
   phoneVerificationExpires: {
     type: Date
   },
+  emailVerificationCode: {
+    type: String
+  },
+  emailVerificationExpires: {
+    type: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now

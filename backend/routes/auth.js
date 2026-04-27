@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { generateToken, protect } = require('../middleware/auth');
 const { upload, handleMulterError } = require('../middleware/upload');
+const sendEmail = require('../utils/email');
 
 const router = express.Router();
 
@@ -178,6 +179,54 @@ router.post('/send-otp', protect, [
     res.status(500).json({
       success: false,
       message: 'Server error while sending OTP'
+    });
+  }
+});
+
+// @route   POST /api/auth/send-email-otp
+// @desc    Send verification OTP for card payment
+// @access  Private
+router.post('/send-email-otp', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Save to user with 10 mins expiration
+    user.emailVerificationCode = otp;
+    user.emailVerificationExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    // Send Email
+    await sendEmail({
+      email: user.email,
+      subject: 'Verification Code for Retrofits LK Payment',
+      message: `Your verification code for card payment is: ${otp}. This code will expire in 10 minutes.`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #333;">Card Verification</h2>
+          <p>Hi ${user.name},</p>
+          <p>You are attempting a card payment on Retrofits LK. Please use the following code to verify your transaction:</p>
+          <div style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #000; margin: 20px 0;">
+            ${otp}
+          </div>
+          <p>This code will expire in 10 minutes.</p>
+          <p>If you did not initiate this request, please ignore this email.</p>
+          <p>Regards,<br>Retrofits LK Team</p>
+        </div>
+      `
+    });
+
+    res.json({
+      success: true,
+      message: 'Verification code sent to your email'
+    });
+  } catch (error) {
+    console.error('Send Email OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while sending email OTP'
     });
   }
 });

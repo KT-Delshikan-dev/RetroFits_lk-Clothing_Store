@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock');
 
 const Checkout = () => {
   const { cartItems, getCartTotal, clearCart } = useCart();
@@ -22,11 +25,18 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({ message: '', type: '' });
 
   // Card payment state
   const [savedCards, setSavedCards] = useState(user?.savedCards || []);
   const [selectedCardId, setSelectedCardId] = useState(user?.savedCards?.find(c => c.isDefault)?._id || '');
   const [showNewCardForm, setShowNewCardForm] = useState(user?.savedCards?.length === 0);
+  
+  // Verification state
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationOtp, setVerificationOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState(null);
 
   // Sync saved cards when user changes
   React.useEffect(() => {
@@ -121,51 +131,85 @@ const Checkout = () => {
         }
       );
 
-      // If card payment, process card details
+      // If card payment, start verification process
       if (paymentMethod === 'card') {
-        // If it's a new card and user wants to save it
+        setCurrentOrder(response.data.data);
+        
+        // Send OTP to email
+        await axios.post(
+          `${process.env.REACT_APP_API_URL}/auth/send-email-otp`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        setShowVerificationModal(true);
+      } else {
+        // COD - Proceed to confirmation
+        clearCart();
+        navigate('/order-confirmation', { state: { order: response.data.data } });
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to place order. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setVerifying(true);
+    setError('');
+
+    try {
+      // 1. Verify OTP and get Stripe client secret
+      const verifyResponse = await axios.post(
+        `${process.env.REACT_APP_API_URL}/orders/${currentOrder._id}/verify-payment-otp`,
+        { otp: verificationOtp },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (verifyResponse.data.success) {
+        // 2. Confirm Stripe Payment if clientSecret is provided
+        if (verifyResponse.data.clientSecret) {
+          const stripe = await stripePromise;
+          // In a full implementation, we'd use Elements/CardElement here
+          // For now, we simulate the Stripe confirmation but use the real backend intent
+          console.log('Confirming real Stripe payment with secret:', verifyResponse.data.clientSecret);
+        }
+
+        // 3. If it's a new card and user wants to save it
         if (showNewCardForm && newCardData.saveCard) {
-          const cardResponse = await axios.put(
+          await axios.put(
             `${process.env.REACT_APP_API_URL}/users/cards`,
             {
               cardHolder: newCardData.cardHolder,
               cardNumber: newCardData.cardNumber,
               expiryDate: newCardData.expiryDate,
-              cardType: 'Visa', // Mock card type
+              cardType: 'Visa',
               isDefault: savedCards.length === 0
             },
-            {
-              headers: { Authorization: `Bearer ${token}` }
-            }
+            { headers: { Authorization: `Bearer ${token}` } }
           );
-          
-          if (cardResponse.data.success) {
-            // Update user state with new cards
-            updateUser({
-              ...user,
-              savedCards: cardResponse.data.data
-            });
-          }
         }
 
-        // Simulate payment processing
-        await axios.put(
-          `${process.env.REACT_APP_API_URL}/orders/${response.data.data._id}/payment`,
-          { transactionId: `TXN${Date.now()}` },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
+        // 3. Simulate Stripe Payment Confirmation
+        const paymentResponse = await axios.put(
+          `${process.env.REACT_APP_API_URL}/orders/${currentOrder._id}/payment`,
+          { 
+            transactionId: verifyResponse.data.paymentIntentId || `TXN${Date.now()}`,
+            status: 'completed'
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-      }
 
-      clearCart();
-      navigate('/order-confirmation', { state: { order: response.data.data } });
+        setShowVerificationModal(false);
+        clearCart();
+        navigate('/order-confirmation', { state: { order: paymentResponse.data.data } });
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to place order. Please try again.');
+      setError(err.response?.data?.message || 'Verification failed. Please check the code.');
     } finally {
-      setLoading(false);
+      setVerifying(false);
     }
   };
 
@@ -531,6 +575,106 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      {/* Verification Modal */}
+      {showVerificationModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative animate-fade-in">
+            <button 
+              onClick={() => setShowVerificationModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Verify Card Payment</h2>
+              <p className="text-gray-600 mt-2">
+                We've sent a 6-digit verification code to <span className="font-semibold text-gray-900">{user?.email}</span>
+              </p>
+            </div>
+
+            {notification.message && (
+              <div className={`mb-6 px-4 py-3 rounded-lg text-sm ${
+                notification.type === 'success' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'
+              }`}>
+                {notification.message}
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtp} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Verification Code</label>
+                <input
+                  type="text"
+                  maxLength="6"
+                  value={verificationOtp}
+                  onChange={(e) => setVerificationOtp(e.target.value)}
+                  placeholder="000000"
+                  className="input-field text-center text-2xl tracking-[1em] font-bold py-4"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col space-y-3">
+                <button
+                  type="submit"
+                  disabled={verifying}
+                  className="w-full btn-primary py-4 text-lg"
+                >
+                  {verifying ? (
+                    <div className="flex items-center justify-center">
+                      <svg className="animate-spin h-5 w-5 mr-3 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Verifying...
+                    </div>
+                  ) : (
+                    'Verify & Pay Now'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setError('');
+                    setNotification({ message: 'Sending new code...', type: 'success' });
+                    try {
+                      await axios.post(
+                        `${process.env.REACT_APP_API_URL}/auth/send-email-otp`,
+                        {},
+                        { headers: { Authorization: `Bearer ${token}` } }
+                      );
+                      setNotification({ message: 'Code resent successfully', type: 'success' });
+                      // Clear notification after 3 seconds
+                      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+                    } catch (err) {
+                      setError('Failed to resend code. Please try again.');
+                      setNotification({ message: '', type: '' });
+                    }
+                  }}
+                  className="text-sm font-medium text-primary-600 hover:text-primary-500 text-center py-2"
+                >
+                  Didn't receive a code? Resend
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

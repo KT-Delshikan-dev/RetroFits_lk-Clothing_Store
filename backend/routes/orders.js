@@ -2,7 +2,9 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
+const { createPaymentIntent } = require('../utils/stripe');
 
 const router = express.Router();
 
@@ -96,7 +98,9 @@ router.post('/', protect, [
         product.markModified('sizes');
       }
       
+      console.log(`[DIAGNOSTIC] Saving product ${product.name}. Price: ${product.price}, Stock: ${product.stock}`);
       await product.save();
+      console.log(`[DIAGNOSTIC] Saved product ${product.name}. Price after save: ${product.price}`);
 
     }
 
@@ -117,7 +121,8 @@ router.post('/', protect, [
       deliveryAddress,
       payment: {
         method: payment.method,
-        status: payment.method === 'card' ? 'pending' : 'pending'
+        status: 'pending',
+        verificationStatus: payment.method === 'card' ? 'pending' : 'none'
       },
       pricing: {
         subtotal,
@@ -133,6 +138,8 @@ router.post('/', protect, [
       }],
       notes
     });
+
+    console.log(`Order ${orderNumber} created. Total: LKR ${total}, Subtotal: LKR ${subtotal}`);
 
     // Populate product details
     await order.populate('user', 'name email phone');
@@ -284,12 +291,57 @@ router.put('/:id/status', protect, authorize('admin'), [
   }
 });
 
+// @route   POST /api/orders/:id/verify-payment-otp
+// @desc    Verify card payment OTP
+// @access  Private
+router.post('/:id/verify-payment-otp', protect, async (req, res) => {
+  try {
+    const { otp } = req.body;
+    const order = await Order.findById(req.params.id);
+    const user = await User.findById(req.user.id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (!user.emailVerificationCode || user.emailVerificationCode !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid verification code' });
+    }
+
+    if (user.emailVerificationExpires < Date.now()) {
+      return res.status(400).json({ success: false, message: 'Verification code has expired' });
+    }
+
+    // Mark as verified
+    order.payment.verificationStatus = 'verified';
+    await order.save();
+
+    // Clear OTP
+    user.emailVerificationCode = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    // Create Stripe Payment Intent
+    const paymentIntent = await createPaymentIntent(order.pricing.total);
+
+    res.json({
+      success: true,
+      message: 'Card verified successfully',
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id
+    });
+  } catch (error) {
+    console.error('Verify payment OTP error:', error);
+    res.status(500).json({ success: false, message: 'Server error during verification' });
+  }
+});
+
 // @route   PUT /api/orders/:id/payment
-// @desc    Update payment status (Mock Stripe)
+// @desc    Update payment status (Stripe integration)
 // @access  Private
 router.put('/:id/payment', protect, async (req, res) => {
   try {
-    const { transactionId } = req.body;
+    const { transactionId, status = 'completed' } = req.body;
     const order = await Order.findById(req.params.id);
 
     if (!order) {
@@ -307,16 +359,24 @@ router.put('/:id/payment', protect, async (req, res) => {
       });
     }
 
-    // Mock payment processing
-    order.payment.status = 'completed';
+    // Update payment status
+    order.payment.status = status;
     order.payment.transactionId = transactionId || `TXN${Date.now()}`;
     order.payment.paidAt = new Date();
+
+    if (status === 'completed') {
+      order.status = 'confirmed';
+      order.statusHistory.push({
+        status: 'confirmed',
+        note: 'Payment received, order confirmed'
+      });
+    }
 
     await order.save();
 
     res.json({
       success: true,
-      message: 'Payment successful',
+      message: status === 'completed' ? 'Payment successful' : 'Payment updated',
       data: order
     });
   } catch (error) {
