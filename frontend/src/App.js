@@ -16,6 +16,7 @@ import Orders from './pages/Orders';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import Chatbot from './components/Chatbot';
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
               <Route path="reports" element={<Admin activeTabOverride="reports" />} />
             </Route>
           </Routes>
+          <Chatbot />
         </CartProvider>
       </AuthProvider>
     </Router>

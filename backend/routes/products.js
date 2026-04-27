@@ -13,7 +13,7 @@ router.get('/', optionalAuth, async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 12,
+      limit = req.user && req.user.role === 'admin' ? 1000 : 12,
       sort = '-createdAt',
       category,
       minPrice,
@@ -25,7 +25,12 @@ router.get('/', optionalAuth, async (req, res) => {
     } = req.query;
 
     // Build query
-    let query = { isActive: true };
+    let query = {};
+    
+    // Only filter active products for non-admins
+    if (!req.user || req.user.role !== 'admin') {
+      query.isActive = true;
+    }
 
     // Category filter
     if (category) {

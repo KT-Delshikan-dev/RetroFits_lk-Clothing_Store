@@ -93,7 +93,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
     }).reverse();
 
     return last7Days.map(date => {
-      const dayOrders = orders.filter(o => o.createdAt && o.createdAt.startsWith(date) && o.status !== 'cancelled');
+      const dayOrders = orders.filter(o => o.createdAt && o.createdAt.startsWith(date) && o.status === 'delivered');
       const revenue = dayOrders.reduce((sum, o) => sum + (o.pricing?.total || 0), 0);
       return { 
         date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }), 
@@ -440,22 +440,25 @@ const Admin = ({ activeTabOverride = 'products' }) => {
           {activeTab === 'products' && (
             <button
               onClick={() => {
-                setEditingProduct(null);
-                setProductImages([]);
-                setProductFormData({
-                  name: '',
-                  description: '',
-                  price: '',
-                  originalPrice: '',
-                  category: 'Men',
-                  subCategory: '',
-                  stock: 0,
-                  sizes: [],
-                  colors: [],
-                  tags: [],
-                  featured: false
-                });
-
+                if (!showProductForm) {
+                  setEditingProduct(null);
+                  setProductImages([]);
+                  setProductFormData({
+                    name: '',
+                    description: '',
+                    price: '',
+                    originalPrice: '',
+                    category: 'Men',
+                    subCategory: '',
+                    stock: 0,
+                    sizes: [],
+                    colors: [],
+                    tags: [],
+                    isActive: true,
+                    featured: false
+                  });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
                 setShowProductForm(!showProductForm);
               }}
               className="btn-primary"
@@ -846,6 +849,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                               tags: product.tags || []
                             });
                             setShowProductForm(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
 
 
@@ -1120,7 +1124,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">LKR {orders.filter(o => o.status !== 'cancelled').reduce((acc, order) => acc + (order.pricing?.total || 0), 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">LKR {orders.filter(o => o.status === 'delivered').reduce((acc, order) => acc + (order.pricing?.total || 0), 0).toLocaleString()}</p>
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 flex items-center">
