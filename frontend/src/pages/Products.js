@@ -20,7 +20,8 @@ const Products = () => {
       subCategory: params.get('subCategory') || '',
       search: params.get('search') || '',
       sort: params.get('sort') || '-createdAt',
-      featured: params.get('featured') || ''
+      featured: params.get('featured') || '',
+      page: params.get('page') || '1'
     };
   });
 
@@ -32,7 +33,8 @@ const Products = () => {
       subCategory: params.get('subCategory') || '',
       search: params.get('search') || '',
       sort: params.get('sort') || '-createdAt',
-      featured: params.get('featured') || ''
+      featured: params.get('featured') || '',
+      page: params.get('page') || '1'
     });
   }, [location.search]);
 
@@ -51,8 +53,17 @@ const Products = () => {
       if (filters.search) params.append('search', filters.search);
       if (filters.sort) params.append('sort', filters.sort);
       if (filters.featured) params.append('featured', filters.featured);
+      if (filters.page) params.append('page', filters.page);
 
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/products?${params.toString()}`, { signal });
+      let response;
+      if (filters.search) {
+        // AI-powered search
+        response = await axios.post(`${process.env.REACT_APP_API_URL}/ai-search`, { query: filters.search }, { signal });
+      } else {
+        // Standard category/filter fetch
+        response = await axios.get(`${process.env.REACT_APP_API_URL}/products?${params.toString()}`, { signal });
+      }
+
       setProducts(response.data.data);
       setPagination(response.data.pagination);
     } catch (error) {
@@ -67,6 +78,8 @@ const Products = () => {
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
     if (key === 'category') newFilters.subCategory = '';
+    // Reset to page 1 on filter change, unless we're actually changing the page
+    if (key !== 'page') newFilters.page = '1';
     
     // Update URL as well
     const params = new URLSearchParams();
@@ -259,11 +272,7 @@ const Products = () => {
                       {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(page => (
                         <button
                           key={page}
-                          onClick={() => {
-                            const params = new URLSearchParams(location.search);
-                            params.set('page', page);
-                            // window.history.pushState({}, '', `${location.pathname}?${params.toString()}`);
-                          }}
+                          onClick={() => handleFilterChange('page', page.toString())}
                           className={`px-4 py-2 rounded-lg ${
                             page === pagination.page
                               ? 'bg-primary-600 text-white'

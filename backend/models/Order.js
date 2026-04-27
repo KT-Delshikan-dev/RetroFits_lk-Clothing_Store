@@ -70,7 +70,12 @@ const OrderSchema = new mongoose.Schema({
       default: 'pending'
     },
     transactionId: String,
-    paidAt: Date
+    paidAt: Date,
+    verificationStatus: {
+      type: String,
+      enum: ['none', 'pending', 'verified', 'failed'],
+      default: 'none'
+    }
   },
   pricing: {
     subtotal: {
@@ -150,11 +155,19 @@ OrderSchema.statics.generateOrderNumber = async function() {
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
   
+  // Use a combination of daily count, short timestamp and random to ensure uniqueness
+  const dailyPrefix = `RF${year}${month}${day}`;
+  
+  // Get count of orders today
   const count = await this.countDocuments({
-    orderNumber: new RegExp(`^RF${year}${month}${day}-`)
+    orderNumber: new RegExp(`^${dailyPrefix}`)
   });
   
-  return `RF${year}${month}${day}-${(count + 1).toString().padStart(4, '0')}`;
+  // Add a small random component to avoid collisions during concurrent requests
+  const random = Math.floor(Math.random() * 100);
+  const sequence = (count + 1).toString().padStart(3, '0');
+  
+  return `${dailyPrefix}-${sequence}${random}`;
 };
 
 // Method to generate bill/invoice data

@@ -12,8 +12,9 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
-   const [quantity, setQuantity] = useState(1);
-  const [error, setError] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [fetchError, setFetchError] = useState(false);
+  const [validationError, setValidationError] = useState('');
   const [showSizeChart, setShowSizeChart] = useState(false);
   const [mainImage, setMainImage] = useState(0);
 
@@ -43,7 +44,7 @@ const ProductDetail = () => {
       }
     } catch (error) {
       console.error('Error fetching product:', error);
-      setError('Product not found');
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -51,12 +52,12 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (product.sizes.length > 0 && !selectedSize) {
-      setError('Please select a size');
+      setValidationError('Please select a size');
       return;
     }
 
     if (product.colors.length > 0 && !selectedColor) {
-      setError('Please select a color');
+      setValidationError('Please select a color');
       return;
     }
 
@@ -64,16 +65,16 @@ const ProductDetail = () => {
     if (product.sizes.length > 0) {
       const sizeData = product.sizes.find(s => s.name === selectedSize);
       if (!sizeData || sizeData.stock < quantity) {
-        setError(`Sorry, only ${sizeData?.stock || 0} units are available for this size.`);
+        setValidationError(`Sorry, only ${sizeData?.stock || 0} units are available for this size.`);
         return;
       }
     } else if (product.stock < quantity) {
-      setError(`Sorry, only ${product.stock} units are available.`);
+      setValidationError(`Sorry, only ${product.stock} units are available.`);
       return;
     }
 
     addToCart(product, quantity, selectedSize, selectedColor);
-    setError('');
+    setValidationError('');
   };
 
 
@@ -88,7 +89,7 @@ const ProductDetail = () => {
     );
   }
 
-  if (error || !product) {
+  if (fetchError || !product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -282,9 +283,9 @@ const ProductDetail = () => {
               </p>
             </div>
 
-            {error && (
+            {validationError && (
               <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-                {error}
+                {validationError}
               </div>
             )}
 
