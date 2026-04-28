@@ -38,11 +38,6 @@ const Footer = () => {
                   Accessories
                 </Link>
               </li>
-              <li>
-                <Link to="/products?category=Footwear" className="text-gray-400 hover:text-white transition-colors">
-                  Footwear
-                </Link>
-              </li>
 
             </ul>
           </div>

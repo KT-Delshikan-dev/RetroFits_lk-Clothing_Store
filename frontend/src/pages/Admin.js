@@ -53,10 +53,8 @@ const Admin = ({ activeTabOverride = 'products' }) => {
   const getAvailableSizes = () => {
     const category = productFormData.category;
 
-    // Footwear logic
-    if (category === 'Footwear') {
-      return ['6', '7', '8', '9', '10', '11'];
-    }
+    // Standard clothing sizes
+    return ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
 
     // Clothing logic (Men/Women)
     if (['Men', 'Women'].includes(category)) {
@@ -95,9 +93,8 @@ const Admin = ({ activeTabOverride = 'products' }) => {
     const defaults = {
       'Men': ['Casual Wear', 'Formal Wear', 'Activewear', 'Outerwear', 'Denim', 'Other'],
       'Women': ['Dresses & Gowns', 'Tops & Blouses', 'Skirts & Trousers', 'Activewear', 'Outerwear', 'Other'],
-      'Footwear': ['Sneakers', 'Formal Shoes', 'Boots', 'Sandals & Slides', 'Other'],
       'Accessories': ['Watches', 'Jewelry', 'Bags & Wallets', 'Belts', 'Sunglasses', 'Other'],
-      'Jerseys': ['National Team', 'Club', 'Retro', 'Training', 'Other']
+      'Jerseys': ['National', 'Club', 'Retro', 'Training', 'Other']
     };
 
     const existing = subCategoriesMap[category] || [];
@@ -494,7 +491,6 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                     <option value="Men">Men</option>
                     <option value="Women">Women</option>
                     <option value="Accessories">Accessories</option>
-                    <option value="Footwear">Footwear</option>
 
                   </select>
                 </div>

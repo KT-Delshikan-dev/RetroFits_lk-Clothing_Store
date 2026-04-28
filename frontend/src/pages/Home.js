@@ -3,20 +3,16 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-
-
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
-   const [loading, setLoading] = useState(true);
-   const { addToCart } = useCart();
+  const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
   const { isAdmin, user, token } = useAuth();
   const [adminData, setAdminData] = useState({ orders: [], revenueData: [] });
 
-
-
-   useEffect(() => {
+  useEffect(() => {
     fetchFeaturedProducts();
     if (isAdmin && token) {
       fetchAdminStats();
@@ -30,7 +26,6 @@ const Home = () => {
       });
       const orders = response.data.data;
       
-      // Process revenue data for last 7 days
       const last7Days = [...Array(7)].map((_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - i);
@@ -49,7 +44,6 @@ const Home = () => {
     }
   };
 
-
   const fetchFeaturedProducts = async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/products?featured=true&limit=8`);
@@ -61,67 +55,74 @@ const Home = () => {
     }
   };
 
-  const categories = [
-    { name: 'Men', image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400&h=500&fit=crop', link: '/products?category=Men' },
-    { name: 'Women', image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=400&h=500&fit=crop', link: '/products?category=Women' },
-    { name: 'Accessories', image: 'https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=400&h=500&fit=crop', link: '/products?category=Accessories' },
-    { name: 'Footwear', image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=500&fit=crop', link: '/products?category=Footwear' }
-  ];
-
-
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gray-950 text-white min-h-[85vh] flex items-center">
-        <div className="absolute inset-0 overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=900&fit=crop"
-            alt="High Fashion 2026"
-            className="w-full h-full object-cover opacity-60 transform scale-105 hover:scale-100 transition-transform duration-[15s] ease-out"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-900/40 via-gray-900/70 to-gray-950"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-950/80 via-transparent to-transparent"></div>
-        </div>
-        <div className="relative container-custom py-24 md:py-32">
-           <div className="max-w-2xl transform translate-y-[-10%]">
-            {isAdmin ? (
-              <>
-                <span className="text-primary-400 font-bold tracking-[0.4em] uppercase text-xs mb-6 block">Management Console • 2026</span>
-                <h1 className="text-6xl md:text-8xl font-serif font-black mb-8 leading-tight drop-shadow-2xl text-white">
-                  Luxury &<br /><span className="text-secondary-500">Excellence.</span>
-                </h1>
-                <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-lg font-light leading-relaxed tracking-wide">
-                  Welcome, {user?.name.split(' ')[0]}. Command the future of AVENZA with precision analytics and inventory mastery.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <Link to="/admin" className="bg-primary-600 text-white px-10 py-5 rounded-full font-bold hover:bg-primary-700 transition-all transform hover:scale-105 text-center uppercase tracking-widest text-xs shadow-2xl">
-                    Executive Dashboard
-                  </Link>
+      <section className="pt-8 pb-12 bg-white">
+        <div className="container-custom">
+          <div className="relative bg-gray-950 text-white min-h-[70vh] md:min-h-[80vh] flex items-center rounded-[40px] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.4)] group animate-fade-in">
+            <div className="absolute inset-0 overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=900&fit=crop"
+                alt="High Fashion 2026"
+                className="w-full h-full object-cover transition-transform duration-[15s] ease-out group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/60 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-gray-950/40 via-transparent to-transparent"></div>
+            </div>
+            
+            <div className="relative px-8 md:px-20 py-24 md:py-32 w-full max-w-4xl">
+              {isAdmin ? (
+                <div className="animate-fadeIn">
+                  <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/30 text-primary-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-8 backdrop-blur-md">
+                    Management Console • 2026
+                  </div>
+                  <h1 className="text-5xl md:text-8xl font-serif font-black mb-8 leading-tight drop-shadow-2xl text-white">
+                    Luxury &<br /><span className="text-secondary-500 italic">Excellence.</span>
+                  </h1>
+                  <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-lg font-light leading-relaxed tracking-wide">
+                    Welcome, {user?.name.split(' ')[0]}. Command the future of AVENZA with precision analytics and inventory mastery.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-6">
+                    <Link to="/admin" className="bg-primary-600 text-white px-10 py-5 rounded-full font-bold hover:bg-primary-700 transition-all transform hover:scale-105 text-center uppercase tracking-widest text-xs shadow-2xl">
+                      Executive Dashboard
+                    </Link>
+                  </div>
                 </div>
-              </>
-            ) : (
-              <>
-                <span className="text-secondary-500 font-bold tracking-[0.5em] uppercase text-xs mb-6 block">Sophistication Redefined • Collection 2026</span>
-                <h1 className="text-6xl md:text-8xl font-serif font-black mb-8 leading-tight drop-shadow-2xl">
-                  The Essence of<br /><span className="text-white opacity-90 italic">Avenza.</span>
-                </h1>
-                <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-lg font-light leading-relaxed tracking-wide">
-                  Experience the fusion of exquisite tailoring and modern sophistication. 
-                  Our 2026 collection celebrates the pinnacle of style with a vision for the future.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <Link to="/products" className="btn-silver px-10 py-4 rounded-full uppercase tracking-widest text-xs">
-                    Explore Collection
-                  </Link>
+              ) : (
+                <div className="animate-fadeIn">
+                  <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-secondary-500/10 border border-secondary-500/30 text-secondary-500 text-[10px] font-bold uppercase tracking-[0.5em] mb-8 backdrop-blur-md">
+                    Sophistication Redefined • 2026
+                  </div>
+                  <h1 className="text-5xl md:text-8xl font-serif font-black mb-8 leading-tight drop-shadow-2xl">
+                    The Essence of<br /><span className="text-white italic opacity-90">Avenza.</span>
+                  </h1>
+                  <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-xl font-light leading-relaxed tracking-wide">
+                    Experience the fusion of exquisite tailoring and modern sophistication. 
+                    Our 2026 collection celebrates the pinnacle of style with a vision for the future.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-6">
+                    <Link to="/products" className="btn-silver px-12 py-5 rounded-full uppercase tracking-widest text-xs">
+                      Explore Collection
+                    </Link>
+                    <button className="px-12 py-5 bg-white/5 border border-white/20 text-white rounded-full uppercase tracking-widest text-xs font-bold hover:bg-white/10 transition-all backdrop-blur-sm">
+                      Our Philosophy
+                    </button>
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
+            
+            {/* Visual accents */}
+            <div className="absolute top-0 right-0 p-12 hidden md:block">
+              <div className="w-32 h-32 border-t-2 border-r-2 border-white/10 rounded-tr-[40px]"></div>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full h-2 bg-gradient-to-r from-secondary-500 via-primary-500 to-transparent opacity-60"></div>
           </div>
-
         </div>
       </section>
 
-       {/* Featured Products or Admin Analytics */}
+      {/* Featured Products or Admin Analytics */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom">
           {isAdmin ? (
@@ -239,10 +240,6 @@ const Home = () => {
         </div>
       </section>
 
-
-
-
-
       {/* Features Section */}
       {!isAdmin && (
         <section className="py-16 bg-white">
@@ -279,7 +276,6 @@ const Home = () => {
           </div>
         </section>
       )}
-
     </div>
   );
 };

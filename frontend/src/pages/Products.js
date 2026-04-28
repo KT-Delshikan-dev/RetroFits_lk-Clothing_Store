@@ -104,7 +104,7 @@ const Products = () => {
     navigate(`/products?${params.toString()}`);
   };
 
-  const categories = ['Men', 'Women', 'Accessories', 'Footwear', 'Jerseys'];
+  const categories = ['Men', 'Women', 'Accessories', 'Jerseys'];
   
   const getSubCategories = (category) => {
     const cat = categories.find(c => c.toLowerCase() === category?.toLowerCase());
@@ -152,6 +152,54 @@ const Products = () => {
             </ol>
           </nav>
         </div>
+
+        {/* Retro Kits LK Poster */}
+        {filters.category?.toLowerCase() === 'jerseys' && (
+          <div className="relative w-full h-[500px] md:h-[600px] mb-12 rounded-[40px] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.4)] group animate-fade-in">
+            <div className="absolute inset-0 overflow-hidden">
+              <img 
+                src="/images/jersey_collection_poster.png" 
+                alt="Retro Kits LK Partnership" 
+                className="w-full h-full object-cover transition-transform duration-[15s] ease-out group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/70 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-gray-950/40 via-transparent to-transparent"></div>
+            </div>
+            
+            <div className="relative h-full flex flex-col justify-center px-8 md:px-20 max-w-4xl text-left py-12">
+              <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-secondary-500/10 border border-secondary-500/30 text-secondary-500 text-[10px] font-bold uppercase tracking-[0.4em] mb-6 backdrop-blur-md w-fit">
+                Strategic Alliance • 2026
+              </div>
+              
+              <h2 className="text-5xl md:text-7xl font-serif font-black text-white mb-6 leading-[1.1]">
+                Now we are partnered with<br />
+                <span className="text-secondary-500 italic drop-shadow-sm">RETRO KITS LK.</span>
+              </h2>
+              
+              <p className="text-gray-300 text-lg md:text-xl font-light leading-relaxed tracking-wide mb-8 drop-shadow-md max-w-2xl">
+                We are proud to announce our official partnership with RETRO KITS LK, bringing you the most exclusive and authentic soccer jersey collection. From legendary classics to the latest match-day kits, experience the pinnacle of sports heritage.
+              </p>
+              
+              <div className="flex flex-wrap gap-6">
+                <button 
+                  onClick={() => document.getElementById('product-grid').scrollIntoView({ behavior: 'smooth' })}
+                  className="btn-silver px-12 py-5 rounded-full uppercase tracking-widest text-[11px]"
+                >
+                  View Collection
+                </button>
+                <button className="px-12 py-5 bg-white/5 border border-white/20 text-white rounded-full uppercase tracking-widest text-[11px] font-bold hover:bg-white/10 transition-all backdrop-blur-sm">
+                  Our Story
+                </button>
+              </div>
+            </div>
+            
+            {/* Visual accents */}
+            <div className="absolute top-0 right-0 p-8">
+              <div className="w-24 h-24 border-t-2 border-r-2 border-white/10 rounded-tr-3xl"></div>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full h-1.5 bg-gradient-to-r from-secondary-500 via-primary-500 to-transparent opacity-80"></div>
+          </div>
+        )}
 
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -234,8 +282,8 @@ const Products = () => {
 
           {/* Product Grid */}
           <main className="flex-1">
-            {loading ? (
 
+            {loading ? (
               <div className="flex justify-center items-center py-24">
                 <svg className="animate-spin h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -251,7 +299,7 @@ const Products = () => {
                 <p className="text-gray-600">Try adjusting your filters or search terms</p>
               </div>
             ) : (
-              <>
+              <div id="product-grid">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {products.map((product) => (
                     <div key={product._id} className="product-card bg-white rounded-lg shadow-sm overflow-hidden">
@@ -321,7 +369,7 @@ const Products = () => {
                     </nav>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </main>
         </div>

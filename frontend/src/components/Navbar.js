@@ -24,7 +24,7 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const categories = ['Men', 'Women', 'Accessories', 'Footwear', 'Jerseys'];
+  const categories = ['Men', 'Women', 'Accessories', 'Jerseys'];
 
 
   const adminLinks = [
