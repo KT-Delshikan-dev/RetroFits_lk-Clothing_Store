@@ -18,7 +18,15 @@ import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Chatbot from './components/Chatbot';
 
+import { client } from './lib/appwrite';
+
 function App() {
+  React.useEffect(() => {
+    client.ping()
+      .then(() => console.log('Appwrite connected successfully'))
+      .catch((err) => console.error('Appwrite connection failed:', err));
+  }, []);
+
   return (
     <Router>
       <AuthProvider>

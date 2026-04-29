@@ -60,7 +60,7 @@ const CartSidebar = () => {
               ) : (
                 <ul className="space-y-4">
                   {cartItems.map((item, index) => (
-                    <li key={`${item.product._id}-${item.size}-${item.color}-${index}`} className="flex py-2 animate-fadeIn">
+                    <li key={`${item.product.id}-${item.size}-${item.color}-${index}`} className="flex py-2 animate-fadeIn">
                       {/* Product Image */}
                       <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                         {item.image ? (
@@ -82,7 +82,7 @@ const CartSidebar = () => {
                         <div>
                           <div className="flex justify-between text-base font-medium text-gray-900">
                             <h3 className="line-clamp-1">
-                              <Link to={`/product/${item.product._id}`} onClick={closeCart}>
+                              <Link to={`/product/${item.product.id}`} onClick={closeCart}>
                                 {item.product.name}
                               </Link>
                             </h3>
@@ -96,21 +96,21 @@ const CartSidebar = () => {
                         <div className="flex flex-1 items-end justify-between text-sm">
                           <div className="flex items-center border border-gray-300 rounded-lg">
                             <button
-                              onClick={() => updateQuantity(item.product._id, item.size, item.color, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.product.id, item.size, item.color, item.quantity - 1)}
                               className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-lg"
                             >
                               -
                             </button>
                             <span className="px-3 py-1 text-gray-900 font-medium">{item.quantity}</span>
                             <button
-                              onClick={() => updateQuantity(item.product._id, item.size, item.color, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.product.id, item.size, item.color, item.quantity + 1)}
                               className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-lg"
                             >
                               +
                             </button>
                           </div>
                           <button
-                            onClick={() => removeFromCart(item.product._id, item.size, item.color)}
+                            onClick={() => removeFromCart(item.product.id, item.size, item.color)}
                             className="font-medium text-red-600 hover:text-red-500"
                           >
                             Remove

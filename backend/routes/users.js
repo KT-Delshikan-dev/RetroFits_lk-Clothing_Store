@@ -1,7 +1,8 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
+const userRepository = require('../repositories/userRepository');
 const { protect, authorize } = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 
@@ -10,25 +11,18 @@ const router = express.Router();
 // @access  Private/Admin
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const { page = 1, limit = 20, role, sort = '-createdAt' } = req.query;
+    const { page = 1, limit = 20, role } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
     
-    let query = {};
-    if (role) {
-      query.role = role;
-    }
-
-    const skip = (page - 1) * limit;
-    
-    const users = await User.find(query)
-      .sort(sort)
-      .limit(Number(limit))
-      .skip(skip);
-
-    const total = await User.countDocuments(query);
+    const { users, total } = await userRepository.list({ role, limit: parseInt(limit), offset });
 
     res.json({
       success: true,
-      data: users,
+      data: users.map(user => {
+          const u = { ...user };
+          delete u.password;
+          return u;
+      }),
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -50,7 +44,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
 // @access  Private/Admin
 router.get('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await userRepository.getById(req.params.id);
 
     if (!user) {
       return res.status(404).json({
@@ -58,6 +52,8 @@ router.get('/:id', protect, authorize('admin'), async (req, res) => {
         message: 'User not found'
       });
     }
+
+    delete user.password;
 
     res.json({
       success: true,
@@ -71,8 +67,6 @@ router.get('/:id', protect, authorize('admin'), async (req, res) => {
     });
   }
 });
-
-
 
 // @route   PUT /api/users/addresses
 // @desc    Add/update user address
@@ -94,10 +88,10 @@ router.put('/addresses', protect, [
     }
 
     const { label, street, city, state, zipCode, country, isDefault } = req.body;
-    const user = await User.findById(req.user.id);
+    const user = await userRepository.getById(req.user.id);
 
-    // Check if address already exists
-    const existingIndex = user.addresses.findIndex(a => a.label === label);
+    const addresses = [...(user.addresses || [])];
+    const existingIndex = addresses.findIndex(a => a.label === label);
     
     const newAddress = {
       label,
@@ -110,28 +104,25 @@ router.put('/addresses', protect, [
     };
 
     if (existingIndex >= 0) {
-      // Update existing address
-      user.addresses[existingIndex] = newAddress;
+      addresses[existingIndex] = newAddress;
     } else {
-      // Add new address
-      user.addresses.push(newAddress);
+      addresses.push(newAddress);
     }
 
-    // If this is set as default, unset others
     if (isDefault) {
-      user.addresses.forEach((addr, idx) => {
-        if (idx !== (existingIndex >= 0 ? existingIndex : user.addresses.length - 1)) {
+      addresses.forEach((addr, idx) => {
+        if (idx !== (existingIndex >= 0 ? existingIndex : addresses.length - 1)) {
           addr.isDefault = false;
         }
       });
     }
 
-    await user.save();
+    await userRepository.update(req.user.id, { addresses });
 
     res.json({
       success: true,
       message: 'Address saved successfully',
-      data: user.addresses
+      data: addresses
     });
   } catch (error) {
     console.error('Save address error:', error);
@@ -147,9 +138,10 @@ router.put('/addresses', protect, [
 // @access  Private
 router.delete('/addresses/:label', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await userRepository.getById(req.user.id);
     
-    const addressIndex = user.addresses.findIndex(a => a.label === req.params.label);
+    const addresses = [...(user.addresses || [])];
+    const addressIndex = addresses.findIndex(a => a.label === req.params.label);
     
     if (addressIndex === -1) {
       return res.status(404).json({
@@ -158,8 +150,8 @@ router.delete('/addresses/:label', protect, async (req, res) => {
       });
     }
 
-    user.addresses.splice(addressIndex, 1);
-    await user.save();
+    addresses.splice(addressIndex, 1);
+    await userRepository.update(req.user.id, { addresses });
 
     res.json({
       success: true,
@@ -191,10 +183,10 @@ router.put('/password', protect, [
     }
 
     const { currentPassword, newPassword } = req.body;
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await userRepository.getById(req.user.id);
 
     // Verify current password
-    const isPasswordCorrect = await user.comparePassword(currentPassword);
+    const isPasswordCorrect = await bcrypt.compare(currentPassword, user.password);
     
     if (!isPasswordCorrect) {
       return res.status(401).json({
@@ -204,8 +196,7 @@ router.put('/password', protect, [
     }
 
     // Update password
-    user.password = newPassword;
-    await user.save();
+    await userRepository.update(req.user.id, { password: newPassword });
 
     res.json({
       success: true,
@@ -239,14 +230,13 @@ router.put('/cards', protect, [
     }
 
     const { cardHolder, cardNumber, expiryDate, cardType, isDefault } = req.body;
-    const user = await User.findById(req.user.id);
+    const user = await userRepository.getById(req.user.id);
 
-    // Mask card number for storage (keep last 4 digits)
+    const savedCards = [...(user.savedCards || [])];
     const maskedNumber = cardNumber.replace(/\s/g, '');
     const displayCardNumber = `**** **** **** ${maskedNumber.slice(-4)}`;
 
-    // Check if card already exists
-    const existingIndex = user.savedCards.findIndex(c => c.cardNumber.endsWith(maskedNumber.slice(-4)));
+    const existingIndex = savedCards.findIndex(c => c.cardNumber.endsWith(maskedNumber.slice(-4)));
     
     const newCard = {
       cardHolder,
@@ -257,25 +247,25 @@ router.put('/cards', protect, [
     };
 
     if (existingIndex >= 0) {
-      user.savedCards[existingIndex] = newCard;
+      savedCards[existingIndex] = newCard;
     } else {
-      user.savedCards.push(newCard);
+      savedCards.push(newCard);
     }
 
     if (isDefault) {
-      user.savedCards.forEach((c, idx) => {
-        if (idx !== (existingIndex >= 0 ? existingIndex : user.savedCards.length - 1)) {
+      savedCards.forEach((c, idx) => {
+        if (idx !== (existingIndex >= 0 ? existingIndex : savedCards.length - 1)) {
           c.isDefault = false;
         }
       });
     }
 
-    await user.save();
+    await userRepository.update(req.user.id, { savedCards });
 
     res.json({
       success: true,
       message: 'Card saved successfully',
-      data: user.savedCards
+      data: savedCards
     });
   } catch (error) {
     console.error('Save card error:', error);
@@ -291,9 +281,10 @@ router.put('/cards', protect, [
 // @access  Private
 router.delete('/cards/:cardNumber', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await userRepository.getById(req.user.id);
     
-    const cardIndex = user.savedCards.findIndex(c => c.cardNumber === req.params.cardNumber);
+    const savedCards = [...(user.savedCards || [])];
+    const cardIndex = savedCards.findIndex(c => c.cardNumber === req.params.cardNumber);
     
     if (cardIndex === -1) {
       return res.status(404).json({
@@ -302,13 +293,13 @@ router.delete('/cards/:cardNumber', protect, async (req, res) => {
       });
     }
 
-    user.savedCards.splice(cardIndex, 1);
-    await user.save();
+    savedCards.splice(cardIndex, 1);
+    await userRepository.update(req.user.id, { savedCards });
 
     res.json({
       success: true,
       message: 'Card deleted successfully',
-      data: user.savedCards
+      data: savedCards
     });
   } catch (error) {
     console.error('Delete card error:', error);
@@ -335,7 +326,7 @@ router.put('/:id', protect, authorize('admin'), [
     }
 
     const { role } = req.body;
-    const user = await User.findById(req.params.id);
+    const user = await userRepository.getById(req.params.id);
 
     if (!user) {
       return res.status(404).json({
@@ -344,13 +335,13 @@ router.put('/:id', protect, authorize('admin'), [
       });
     }
 
-    user.role = role;
-    await user.save();
+    const updatedUser = await userRepository.update(req.params.id, { role });
+    delete updatedUser.password;
 
     res.json({
       success: true,
       message: 'User updated successfully',
-      data: user
+      data: updatedUser
     });
   } catch (error) {
     console.error('Update user error:', error);
@@ -366,7 +357,7 @@ router.put('/:id', protect, authorize('admin'), [
 // @access  Private/Admin
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await userRepository.getById(req.params.id);
 
     if (!user) {
       return res.status(404).json({
@@ -376,14 +367,22 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     }
 
     // Prevent deleting oneself
-    if (user._id.toString() === req.user.id) {
+    if (user.id === req.user.id) {
       return res.status(400).json({
         success: false,
         message: 'Cannot delete your own admin account'
       });
     }
 
-    await User.findByIdAndDelete(req.params.id);
+    // Prevent deleting oneself
+    if (user.id === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete your own admin account'
+      });
+    }
+
+    await userRepository.delete(req.params.id);
 
     res.json({
       success: true,

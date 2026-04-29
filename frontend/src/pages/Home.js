@@ -192,11 +192,11 @@ const Home = () => {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {featuredProducts.map((product) => (
-                    <div key={product._id} className="product-card bg-white rounded-lg shadow-sm overflow-hidden">
-                      <Link to={`/product/${product._id}`} className="block">
+                    <div key={product.id} className="product-card bg-white rounded-lg shadow-sm overflow-hidden">
+                      <Link to={`/product/${product.id}`} className="block">
                         <div className="aspect-w-1 aspect-h-1">
                           <img
-                            src={product.images[0]?.url 
+                            src={product.images?.[0]?.url 
                               ? `${process.env.REACT_APP_UPLOAD_URL}${product.images[0].url}`
                               : 'https://via.placeholder.com/300x300?text=No+Image'
                             }
@@ -208,7 +208,7 @@ const Home = () => {
                       <div className="p-4">
                         <p className="text-sm text-gray-500 mb-1">{product.category}</p>
                         <h3 className="font-medium text-gray-900 mb-2 line-clamp-1">
-                          <Link to={`/product/${product._id}`}>{product.name}</Link>
+                          <Link to={`/product/${product.id}`}>{product.name}</Link>
                         </h3>
                         <div className="flex items-center justify-between">
                           <div>

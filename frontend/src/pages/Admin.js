@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const Admin = ({ activeTabOverride = 'products' }) => {
   const { user, token, isAdmin } = useAuth();
   const activeTab = activeTabOverride;
+  const getProductId = (product) => product?.id || product?._id || product?.$id;
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [usersList, setUsersList] = useState([]);
@@ -222,7 +223,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
 
       const formData = new FormData();
       
-      const excludedFields = ['_id', '__v', 'createdAt', 'updatedAt', 'images', 'ratings'];
+      const excludedFields = ['id', '_id', '$id', '__v', 'createdAt', 'updatedAt', 'images', 'ratings'];
       
       Object.keys(productFormData).forEach(key => {
         if (excludedFields.includes(key)) return;
@@ -244,7 +245,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
 
       if (editingProduct) {
         await axios.put(
-          `${process.env.REACT_APP_API_URL}/products/${editingProduct._id}`,
+          `${process.env.REACT_APP_API_URL}/products/${getProductId(editingProduct)}`,
           formData,
           { headers }
         );
@@ -272,6 +273,11 @@ const Admin = ({ activeTabOverride = 'products' }) => {
 
 
   const handleDeleteProduct = async (productId) => {
+    if (!productId) {
+      showNotification('Cannot delete product because its ID is missing.', 'error');
+      return;
+    }
+
     setConfirmModal({
       show: true,
       type: 'product',
@@ -286,7 +292,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
     
     const headers = ['Order ID', 'Date', 'Customer', 'Email', 'Items', 'Total (LKR)', 'Status', 'Payment'];
     const rows = orders.map(order => [
-      order._id,
+      order.id,
       new Date(order.createdAt).toLocaleDateString(),
       order.user?.name || 'Guest',
       order.user?.email || 'N/A',
@@ -491,6 +497,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                     <option value="Men">Men</option>
                     <option value="Women">Women</option>
                     <option value="Accessories">Accessories</option>
+                    <option value="Jerseys">Jerseys</option>
 
                   </select>
                 </div>
@@ -676,7 +683,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                           />
                           <button
                             type="button"
-                            onClick={() => handleRemoveImage(editingProduct._id, idx)}
+                            onClick={() => handleRemoveImage(getProductId(editingProduct), idx)}
                             className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                             title="Remove image"
                           >
@@ -805,12 +812,12 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {products.map((product) => (
-                    <tr key={product._id}>
+                    <tr key={getProductId(product)}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0">
                             <img
-                              src={product.images[0]?.url 
+                              src={product.images?.[0]?.url 
                                 ? `${process.env.REACT_APP_UPLOAD_URL}${product.images[0].url}`
                                 : 'https://via.placeholder.com/40'
                               }
@@ -866,7 +873,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteProduct(product._id)}
+                          onClick={() => handleDeleteProduct(getProductId(product))}
                           className="text-red-600 hover:text-red-900"
                         >
                           Delete
@@ -924,7 +931,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {orders.map((order) => (
-                    <tr key={order._id}>
+                    <tr key={order.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {order.orderNumber}
                       </td>
@@ -942,7 +949,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select
                           value={order.status}
-                          onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
+                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${
                             order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                             order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
@@ -970,7 +977,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                           View
                         </button>
                         <button 
-                          onClick={() => handleDeleteOrder(order._id)}
+                          onClick={() => handleDeleteOrder(order.id)}
                           className="text-red-600 hover:text-red-900"
                         >
                           Delete
@@ -1012,7 +1019,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {orders.map((order) => (
-                    <tr key={order._id}>
+                    <tr key={order.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.orderNumber}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.user?.name}</td>
@@ -1069,7 +1076,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {usersList.map((u) => (
-                    <tr key={u._id}>
+                    <tr key={u.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 bg-primary-100 rounded-full flex items-center justify-center text-primary-800 font-bold">
@@ -1085,7 +1092,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <select
                           value={u.role}
-                          onChange={(e) => handleUpdateUserRole(u._id, e.target.value)}
+                          onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${
                             u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
                           } border-0 cursor-pointer focus:ring-0`}

@@ -30,6 +30,11 @@ module.exports = {
           800: '#4B5563',
           900: '#1F2937',
         },
+        accent: {
+          light: '#2DD4BF', // Teal 400
+          DEFAULT: '#0D9488', // Teal 600
+          dark: '#0F766E', // Teal 700
+        },
       },
       fontFamily: {
         sans: ['Outfit', 'system-ui', 'sans-serif'],

@@ -91,13 +91,13 @@ const Chatbot = () => {
                       <p className="text-xs font-bold text-gray-500 uppercase">Suggestions:</p>
                       {msg.products.map(product => (
                         <Link 
-                          key={product._id} 
-                          to={`/product/${product._id}`}
+                          key={product.id} 
+                          to={`/product/${product.id}`}
                           className="flex items-center p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                           onClick={() => setIsOpen(false)}
                         >
                           <img 
-                            src={product.images[0]?.url ? `${process.env.REACT_APP_UPLOAD_URL}${product.images[0].url}` : 'https://via.placeholder.com/50'} 
+                            src={product.images?.[0]?.url ? `${process.env.REACT_APP_UPLOAD_URL}${product.images[0].url}` : 'https://via.placeholder.com/50'} 
                             alt={product.name} 
                             className="w-10 h-10 object-cover rounded"
                           />

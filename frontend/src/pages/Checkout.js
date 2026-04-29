@@ -4,6 +4,8 @@ import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
+import { validateCardNumber, validateExpiryDate, validateCVV } from '../utils/cardValidation';
+import { Navigate } from 'react-router-dom';
 
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock');
 
@@ -11,6 +13,7 @@ const Checkout = () => {
   const { cartItems, getCartTotal, clearCart } = useCart();
   const { user, token, updateUser } = useAuth();
   const navigate = useNavigate();
+
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -43,7 +46,7 @@ const Checkout = () => {
     if (user?.savedCards) {
       setSavedCards(user.savedCards);
       if (!selectedCardId && user.savedCards.length > 0) {
-        setSelectedCardId(user.savedCards.find(c => c.isDefault)?._id || user.savedCards[0]._id);
+        setSelectedCardId(user.savedCards.find(c => c.isDefault)?.id || user.savedCards[0].id);
       }
     }
   }, [user, selectedCardId]);
@@ -55,6 +58,10 @@ const Checkout = () => {
     cvv: '',
     saveCard: true
   });
+  
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" />;
+  }
 
   const shipping = getCartTotal() > 5000 ? 0 : 250;
   const total = getCartTotal() + shipping;
@@ -99,10 +106,31 @@ const Checkout = () => {
     setLoading(true);
     setError('');
 
+    // Card validation
+    if (paymentMethod === 'card' && showNewCardForm) {
+      if (!validateCardNumber(newCardData.cardNumber)) {
+        setError('Invalid card number');
+        setLoading(false);
+        return;
+      }
+      if (!validateExpiryDate(newCardData.expiryDate)) {
+        setError('Invalid expiry date (MM/YY)');
+        setLoading(false);
+        return;
+      }
+      if (!validateCVV(newCardData.cvv)) {
+        setError('Invalid CVV');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const orderData = {
-        items: cartItems.map(item => ({
-          product: item.product._id,
+        items: cartItems
+          .filter(item => item.product && item.product.id)
+          .map(item => ({
+            product: item.product.id,
           quantity: item.quantity,
           size: item.size,
           color: item.color
@@ -118,9 +146,17 @@ const Checkout = () => {
         },
         payment: {
           method: paymentMethod
-        }
+        },
+        pricing: {
+          subtotal: getCartTotal(),
+          shipping: 500,
+          total: getCartTotal() + 500
+        },
+        paymentMethod: paymentMethod
       };
 
+      console.log('Sending order data:', orderData);
+      
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/orders`,
         orderData,
@@ -374,14 +410,14 @@ const Checkout = () => {
                           <div className="space-y-2">
                             <p className="text-sm font-medium text-gray-700">Select a saved card:</p>
                             {savedCards.map((card) => (
-                              <label key={card._id} className="flex items-center p-3 bg-white border border-gray-200 rounded-md cursor-pointer hover:border-primary-400">
+                              <label key={card.id} className="flex items-center p-3 bg-white border border-gray-200 rounded-md cursor-pointer hover:border-primary-400">
                                 <input
                                   type="radio"
                                   name="selectedCard"
-                                  value={card._id}
-                                  checked={selectedCardId === card._id && !showNewCardForm}
+                                  value={card.id}
+                                  checked={selectedCardId === card.id && !showNewCardForm}
                                   onChange={() => {
-                                    setSelectedCardId(card._id);
+                                    setSelectedCardId(card.id);
                                     setShowNewCardForm(false);
                                   }}
                                   className="h-4 w-4 text-primary-600"

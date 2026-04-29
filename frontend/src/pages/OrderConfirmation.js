@@ -5,6 +5,11 @@ const OrderConfirmation = () => {
   const location = useLocation();
   const order = location.state?.order;
 
+  const formatPrice = (price) => {
+    const val = parseFloat(price);
+    return isNaN(val) ? '0' : val.toLocaleString();
+  };
+
   if (!order) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -80,7 +85,7 @@ const OrderConfirmation = () => {
                       </p>
                     </div>
                     <p className="font-medium text-gray-900">
-                      LKR {(item.price * item.quantity).toLocaleString()}
+                      LKR {formatPrice(item.price * item.quantity)}
                     </p>
                   </div>
                 ))}
@@ -112,15 +117,15 @@ const OrderConfirmation = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>LKR {order.pricing?.subtotal?.toLocaleString() || '0'}</span>
+                  <span>LKR {formatPrice(order.pricing?.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>{order.pricing?.shipping === 0 ? 'Free' : `LKR ${order.pricing?.shipping?.toLocaleString() || '0'}`}</span>
+                  <span>{order.pricing?.shipping === 0 ? 'Free' : `LKR ${formatPrice(order.pricing?.shipping)}`}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t">
                   <span>Total</span>
-                  <span>LKR {order.pricing?.total?.toLocaleString() || '0'}</span>
+                  <span>LKR {formatPrice(order.pricing?.total)}</span>
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const Product = require('../models/Product');
+const productRepository = require('../repositories/productRepository');
 const { protect, authorize, optionalAuth } = require('../middleware/auth');
 const { upload, handleMulterError } = require('../middleware/upload');
 
@@ -14,7 +14,6 @@ router.get('/', optionalAuth, async (req, res) => {
     const {
       page = 1,
       limit = req.user && req.user.role === 'admin' ? 1000 : 12,
-      sort = '-createdAt',
       category,
       minPrice,
       maxPrice,
@@ -24,70 +23,28 @@ router.get('/', optionalAuth, async (req, res) => {
       subCategory
     } = req.query;
 
-    // Build query
-    let query = {};
-    
-    // Only filter active products for non-admins
-    if (!req.user || req.user.role !== 'admin') {
-      query.isActive = true;
-    }
+    const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    // Category filter
-    if (category) {
-      query.category = { $regex: new RegExp(`^${category}$`, 'i') };
-    }
+    // Build filter options for repository
+    const filterOptions = {
+        limit: parseInt(limit),
+        offset,
+        category,
+        subCategory,
+        minPrice,
+        maxPrice,
+        featured: featured === 'true' ? true : undefined,
+        search,
+        tags: tags ? tags.split(',') : undefined,
+        isActive: (!req.user || req.user.role !== 'admin') ? true : undefined
+    };
 
-    // Sub-category filter
-    if (subCategory) {
-      query.subCategory = { $regex: new RegExp(`^${subCategory}$`, 'i') };
-    }
-
-
-
-    // Price range filter
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
-    }
-
-    // Featured filter
-    if (featured === 'true') {
-      query.featured = true;
-    }
-
-    // Tags filter
-    if (tags) {
-      query.tags = { $in: tags.split(',') };
-    }
-
-    // New Arrivals filter (Last 14 days + Featured)
-    if (req.query.newArrivals === 'true') {
-      const fourteenDaysAgo = new Date();
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-      query.createdAt = { $gte: fourteenDaysAgo };
-      query.featured = true; // Must be featured to be in new arrivals
-      query.excludeFromNewArrivals = { $ne: true };
-    }
-
-    // Search functionality
-    if (search) {
-      query.$text = { $search: search };
-    }
-
-    // Execute query with pagination
-    const skip = (page - 1) * limit;
-    const products = await Product.find(query)
-      .sort(sort)
-      .limit(Number(limit))
-      .skip(skip);
-
-    // Get total count
-    const total = await Product.countDocuments(query);
+    // Execute query
+    const { documents, total } = await productRepository.getAll(filterOptions);
 
     res.json({
       success: true,
-      data: products,
+      data: documents,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -109,27 +66,29 @@ router.get('/', optionalAuth, async (req, res) => {
 // @access  Public
 router.get('/subcategories', async (req, res) => {
   try {
-    const subcategories = await Product.aggregate([
-      { $match: { isActive: true } },
-      {
-        $group: {
-          _id: "$category",
-          subCategories: { $addToSet: "$subCategory" }
-        }
-      }
-    ]);
+    // Appwrite doesn't support aggregation easily, so we'll fetch all active products
+    // and group them in-memory. For a larger catalog, a separate collection is better.
+    const { documents } = await productRepository.getAll({ limit: 5000, isActive: true });
 
     const result = {};
-    subcategories.forEach(item => {
-      if (item._id) {
-        // Filter out null/empty strings
-        result[item._id] = item.subCategories.filter(sub => sub && sub.trim() !== '');
+    documents.forEach(doc => {
+      if (doc.category && doc.subCategory) {
+        if (!result[doc.category]) {
+          result[doc.category] = new Set();
+        }
+        result[doc.category].add(doc.subCategory);
       }
+    });
+
+    // Convert Sets back to Arrays
+    const data = {};
+    Object.keys(result).forEach(cat => {
+      data[cat] = Array.from(result[cat]);
     });
 
     res.json({
       success: true,
-      data: result
+      data
     });
   } catch (error) {
     console.error('Get subcategories error:', error);
@@ -145,14 +104,15 @@ router.get('/subcategories', async (req, res) => {
 // @access  Public
 router.get('/category/:category', async (req, res) => {
   try {
-    const products = await Product.find({
+    const { documents } = await productRepository.getAll({
       category: req.params.category,
-      isActive: true
-    }).sort('-createdAt');
+      isActive: true,
+      limit: 100
+    });
 
     res.json({
       success: true,
-      data: products
+      data: documents
     });
   } catch (error) {
     console.error('Get category products error:', error);
@@ -168,14 +128,15 @@ router.get('/category/:category', async (req, res) => {
 // @access  Public
 router.get('/featured', async (req, res) => {
   try {
-    const products = await Product.find({
+    const { documents } = await productRepository.getAll({
       featured: true,
-      isActive: true
-    }).limit(12).sort('category -createdAt');
+      isActive: true,
+      limit: 12
+    });
 
     res.json({
       success: true,
-      data: products
+      data: documents
     });
   } catch (error) {
     console.error('Get featured products error:', error);
@@ -191,7 +152,7 @@ router.get('/featured', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await productRepository.getById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -217,12 +178,10 @@ router.get('/:id', async (req, res) => {
 // @desc    Create new product (Admin only)
 // @access  Private/Admin
 router.post('/', protect, authorize('admin'), upload.array('images', 4), handleMulterError, [
-
   body('name').trim().notEmpty().withMessage('Product name is required'),
   body('description').trim().notEmpty().withMessage('Description is required'),
   body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
   body('category').isIn(['Men', 'Women', 'Accessories', 'Jerseys']).withMessage('Invalid category'),
-
   body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
 ], async (req, res) => {
   try {
@@ -249,7 +208,6 @@ router.post('/', protect, authorize('admin'), upload.array('images', 4), handleM
       featured
     } = req.body;
 
-
     // Process uploaded images
     const images = req.files ? req.files.map(file => ({
       url: `/uploads/${file.filename}`,
@@ -261,18 +219,17 @@ router.post('/', protect, authorize('admin'), upload.array('images', 4), handleM
     const parsedColors = (colors && colors !== 'undefined' && colors !== 'null') ? JSON.parse(colors) : [];
     const parsedTags = (tags && tags !== 'undefined' && tags !== 'null') ? JSON.parse(tags) : [];
 
-
     // Calculate total stock from sizes if provided
     let totalStock = parseInt(stock) || 0;
     if (parsedSizes.length > 0) {
       totalStock = parsedSizes.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0);
     }
 
-    const product = await Product.create({
+    const productData = {
       name,
       description,
-      price,
-      originalPrice,
+      price: parseFloat(price),
+      originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
       images,
       category,
       subCategory,
@@ -281,10 +238,11 @@ router.post('/', protect, authorize('admin'), upload.array('images', 4), handleM
       stock: totalStock,
       sku,
       tags: parsedTags,
-      featured: featured === 'true'
-    });
+      featured: featured === 'true',
+      isActive: true
+    };
 
-
+    const product = await productRepository.create(productData);
 
     res.status(201).json({
       success: true,
@@ -297,7 +255,6 @@ router.post('/', protect, authorize('admin'), upload.array('images', 4), handleM
       success: false,
       message: error.message || 'Server error'
     });
-
   }
 });
 
@@ -305,13 +262,10 @@ router.post('/', protect, authorize('admin'), upload.array('images', 4), handleM
 // @desc    Update product (Admin only)
 // @access  Private/Admin
 router.put('/:id', protect, authorize('admin'), upload.array('images', 4), handleMulterError, [
-
   body('name').optional().trim().notEmpty().withMessage('Product name cannot be empty'),
   body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
   body('category').optional().isIn(['Men', 'Women', 'Accessories', 'Jerseys']).withMessage('Invalid category'),
   body('stock').optional().isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
-
-
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -322,7 +276,7 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 4), handl
       });
     }
 
-    let product = await Product.findById(req.params.id);
+    let product = await productRepository.getById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -347,33 +301,27 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 4), handl
       isActive
     } = req.body;
 
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (originalPrice !== undefined) updateData.originalPrice = parseFloat(originalPrice);
+    if (category !== undefined) updateData.category = category;
+    if (subCategory !== undefined) updateData.subCategory = subCategory;
+    if (sku !== undefined) updateData.sku = sku;
 
-    // Update fields
-    if (name !== undefined) product.name = name;
-    if (description !== undefined) product.description = description;
-    if (price !== undefined) product.price = price;
-    if (originalPrice !== undefined) product.originalPrice = originalPrice;
-    if (category !== undefined) product.category = category;
-
-    
     if (sizes) {
       const parsedSizes = (sizes && sizes !== 'undefined' && sizes !== 'null') ? JSON.parse(sizes) : [];
-      product.sizes = parsedSizes;
-      // Update total stock from sizes
-      product.stock = parsedSizes.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0);
+      updateData.sizes = parsedSizes;
+      updateData.stock = parsedSizes.reduce((acc, curr) => acc + (parseInt(curr.stock) || 0), 0);
     } else if (stock !== undefined) {
-      product.stock = parseInt(stock) || 0;
+      updateData.stock = parseInt(stock) || 0;
     }
 
-    if (colors) product.colors = (colors && colors !== 'undefined' && colors !== 'null') ? JSON.parse(colors) : [];
-    if (sku) product.sku = sku;
-    if (subCategory) product.subCategory = subCategory;
-    if (tags) product.tags = (tags && tags !== 'undefined' && tags !== 'null') ? JSON.parse(tags) : [];
-
-
-    if (featured !== undefined) product.featured = featured === 'true';
-    if (isActive !== undefined) product.isActive = isActive === 'true';
-
+    if (colors) updateData.colors = (colors && colors !== 'undefined' && colors !== 'null') ? JSON.parse(colors) : [];
+    if (tags) updateData.tags = (tags && tags !== 'undefined' && tags !== 'null') ? JSON.parse(tags) : [];
+    if (featured !== undefined) updateData.featured = featured === 'true';
+    if (isActive !== undefined) updateData.isActive = isActive === 'true';
 
     // Handle new image uploads
     if (req.files && req.files.length > 0) {
@@ -381,23 +329,21 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 4), handl
         url: `/uploads/${file.filename}`,
         alt: `${name || product.name} image`
       }));
-      // Keep existing images and add new ones
-      product.images = [...product.images, ...newImages];
+      updateData.images = [...product.images, ...newImages];
     }
 
-    await product.save();
+    const updatedProduct = await productRepository.update(req.params.id, updateData);
 
     res.json({
       success: true,
       message: 'Product updated successfully',
-      data: product
+      data: updatedProduct
     });
   } catch (error) {
     console.error('Update product error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Server error'
-
     });
   }
 });
@@ -407,7 +353,7 @@ router.put('/:id', protect, authorize('admin'), upload.array('images', 4), handl
 // @access  Private/Admin
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await productRepository.getById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -416,8 +362,7 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
       });
     }
 
-    // Hard delete
-    await Product.findByIdAndDelete(req.params.id);
+    await productRepository.delete(req.params.id);
 
     res.json({
       success: true,
@@ -437,7 +382,7 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
 // @access  Private/Admin
 router.delete('/:id/images/:index', protect, authorize('admin'), async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await productRepository.getById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -455,13 +400,15 @@ router.delete('/:id/images/:index', protect, authorize('admin'), async (req, res
     }
 
     // Remove the image at the specified index
-    product.images.splice(index, 1);
-    await product.save();
+    const updatedImages = [...product.images];
+    updatedImages.splice(index, 1);
+    
+    const updatedProduct = await productRepository.update(req.params.id, { images: updatedImages });
 
     res.json({
       success: true,
       message: 'Image removed successfully',
-      data: product
+      data: updatedProduct
     });
   } catch (error) {
     console.error('Remove image error:', error);
@@ -471,6 +418,5 @@ router.delete('/:id/images/:index', protect, authorize('admin'), async (req, res
     });
   }
 });
-
 
 module.exports = router;

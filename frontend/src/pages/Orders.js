@@ -90,7 +90,7 @@ const Orders = () => {
         ) : (
           <div className="space-y-6">
             {orders.map((order) => (
-              <div key={order._id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div key={order.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
                 {/* Order Header */}
                 <div className="bg-gray-50 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
                   <div>
@@ -148,14 +148,14 @@ const Orders = () => {
                     </div>
                     <div className="flex space-x-4">
                       <button
-                        onClick={() => setSelectedOrder(selectedOrder?._id === order._id ? null : order)}
+                        onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
                         className="btn-outline py-2"
                       >
-                        {selectedOrder?._id === order._id ? 'Hide Details' : 'View Details'}
+                        {selectedOrder?.id === order.id ? 'Hide Details' : 'View Details'}
                       </button>
                       {order.status === 'pending' && (
                         <button
-                          onClick={() => setCancelModal({ show: true, orderId: order._id })}
+                          onClick={() => setCancelModal({ show: true, orderId: order.id })}
                           className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
                         >
                           Cancel Order
@@ -166,7 +166,7 @@ const Orders = () => {
                 </div>
 
                 {/* Order Details */}
-                {selectedOrder?._id === order._id && (
+                {selectedOrder?.id === order.id && (
                   <div className="border-t px-6 py-4 bg-gray-50">
                     <h3 className="font-bold text-gray-900 mb-4">Order Details</h3>
                     

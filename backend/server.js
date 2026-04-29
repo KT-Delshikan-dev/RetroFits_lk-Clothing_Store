@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -9,7 +8,7 @@ dotenv.config();
 
 // Import routes
 const authRoutes = require('./routes/auth');
-const productRoutes = require('./routes/products');
+const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orders');
 const userRoutes = require('./routes/users');
 const aiRoutes = require('./routes/ai');
@@ -24,7 +23,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files for uploaded images
+// Static files for uploaded images (Keep for legacy or hybrid storage)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
@@ -36,7 +35,7 @@ app.use('/api', aiRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'AVENZA API is running' });
+  res.json({ status: 'OK', message: 'RetroFits API (Appwrite) is running' });
 });
 
 // Error handling middleware
@@ -48,18 +47,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    const PORT = process.env.PORT || 5005;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
-  });
+const PORT = process.env.PORT || 5005;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} (Using Appwrite)`);
+});
 
 module.exports = app;

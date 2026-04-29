@@ -44,14 +44,17 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-4">
-          <Logo className="h-16" />
+          <Logo className="h-28" showWordmark={true} />
         </div>
         <h2 className="mt-6 text-center text-3xl font-serif font-bold text-gray-900">
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
-          <button onClick={() => navigate('/register')} className="font-medium text-primary-600 hover:text-primary-500 bg-none border-none cursor-pointer">
+          <button 
+            onClick={() => navigate('/register')} 
+            className="font-bold text-accent hover:text-accent-dark bg-accent/5 px-3 py-1 rounded-full transition-all cursor-pointer"
+          >
             create a new account
           </button>
         </p>
@@ -128,7 +131,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-silver flex justify-center py-2.5 rounded-full"
+                className="w-full btn-primary flex justify-center py-3 rounded-full shadow-lg hover:shadow-accent/30"
               >
                 {loading ? (
                   <svg className="animate-spin h-5 w-5 text-black" fill="none" viewBox="0 0 24 24">

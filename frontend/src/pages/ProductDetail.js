@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import SizeChartModal from '../components/SizeChartModal';
-
+import productService from '../services/productService';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -18,8 +18,6 @@ const ProductDetail = () => {
   const [showSizeChart, setShowSizeChart] = useState(false);
   const [mainImage, setMainImage] = useState(0);
 
-
-
   const { addToCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -31,13 +29,13 @@ const ProductDetail = () => {
 
   const fetchProduct = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/products/${id}`);
-      const productData = response.data.data;
+      const result = await productService.getProductById(id);
+      const productData = result.data;
       setProduct(productData);
       
       // Set default size and color
       if (productData.sizes && productData.sizes.length > 0) {
-        const availableSize = productData.sizes.find(s => s.available);
+        const availableSize = productData.sizes.find(s => s.stock > 0);
         if (availableSize) setSelectedSize(availableSize.name);
       }
       if (productData.colors && productData.colors.length > 0) {
@@ -136,7 +134,7 @@ const ProductDetail = () => {
           <div>
             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-4 aspect-square">
               <img
-                src={product.images[mainImage]?.url 
+                src={product.images?.[mainImage]?.url 
                   ? `${process.env.REACT_APP_UPLOAD_URL}${product.images[mainImage].url}`
                   : 'https://via.placeholder.com/600x600?text=No+Image'
                 }
@@ -144,7 +142,7 @@ const ProductDetail = () => {
                 className="w-full h-full object-cover transition-all duration-300"
               />
             </div>
-            {product.images.length > 1 && (
+            {product.images?.length > 1 && (
               <div className="grid grid-cols-4 gap-4">
                 {product.images.map((image, index) => (
                   <div 
@@ -177,7 +175,7 @@ const ProductDetail = () => {
                   <svg
                     key={i}
                     className={`h-5 w-5 ${
-                      i < Math.floor(product.ratings.average)
+                      i < Math.floor(product.ratings?.average || 0)
                         ? 'text-yellow-400'
                         : 'text-gray-300'
                     }`}
@@ -189,7 +187,7 @@ const ProductDetail = () => {
                 ))}
               </div>
               <span className="ml-2 text-gray-600 text-sm">
-                ({product.ratings.count} reviews)
+                ({product.ratings?.count || 0} reviews)
               </span>
             </div>
 

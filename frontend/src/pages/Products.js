@@ -3,6 +3,7 @@ import { useLocation, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import productService from '../services/productService';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -62,25 +63,22 @@ const Products = () => {
   const fetchProducts = async (signal) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filters.category) params.append('category', filters.category);
-      if (filters.subCategory) params.append('subCategory', filters.subCategory);
-      if (filters.search) params.append('search', filters.search);
-      if (filters.sort) params.append('sort', filters.sort);
-      if (filters.featured) params.append('featured', filters.featured);
-      if (filters.page) params.append('page', filters.page);
-
       let response;
       if (filters.search) {
-        // AI-powered search
+        // AI-powered search (Still using axios directly for this custom endpoint)
         response = await axios.post(`${process.env.REACT_APP_API_URL}/ai-search`, { query: filters.search }, { signal });
+        setProducts(response.data.data);
+        setPagination(response.data.pagination);
       } else {
-        // Standard category/filter fetch
-        response = await axios.get(`${process.env.REACT_APP_API_URL}/products?${params.toString()}`, { signal });
+        // Standard category/filter fetch using productService
+        const result = await productService.getProducts(filters);
+        setProducts(result.data);
+        setPagination({
+            page: result.page,
+            total: result.total,
+            pages: result.totalPages
+        });
       }
-
-      setProducts(response.data.data);
-      setPagination(response.data.pagination);
     } catch (error) {
       if (error.name !== 'CanceledError') {
         console.error('Error fetching products:', error);
@@ -302,11 +300,11 @@ const Products = () => {
               <div id="product-grid">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   {products.map((product) => (
-                    <div key={product._id} className="product-card bg-white rounded-lg shadow-sm overflow-hidden">
-                      <Link to={`/product/${product._id}`} className="block">
+                    <div key={product.id} className="product-card bg-white rounded-lg shadow-sm overflow-hidden">
+                      <Link to={`/product/${product.id}`} className="block">
                         <div className="aspect-w-1 aspect-h-1">
                           <img
-                            src={product.images[0]?.url 
+                            src={product.images?.[0]?.url 
                               ? `${process.env.REACT_APP_UPLOAD_URL}${product.images[0].url}`
                               : 'https://via.placeholder.com/300x300?text=No+Image'
                             }
@@ -318,7 +316,7 @@ const Products = () => {
                       <div className="p-4">
                         <p className="text-sm text-gray-500 mb-1">{product.category}</p>
                         <h3 className="font-medium text-gray-900 mb-2 line-clamp-1">
-                          <Link to={`/product/${product._id}`}>{product.name}</Link>
+                          <Link to={`/product/${product.id}`}>{product.name}</Link>
                         </h3>
                         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
                         <div className="flex items-center justify-between">

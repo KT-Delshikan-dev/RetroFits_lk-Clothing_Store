@@ -284,55 +284,57 @@ const Profile = () => {
           )}
         </div>
 
-        {/* Payment Methods Section */}
-        <div className="mt-12 border-t border-gray-100 pt-8">
-          <h3 className="text-xl font-serif font-bold text-gray-900 mb-6">Payment Methods</h3>
-          
-          <div className="space-y-4">
-            {user?.savedCards && user.savedCards.length > 0 ? (
-              user.savedCards.map((card) => (
-                <div key={card._id} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                  <div className="flex items-center">
-                    <div className="h-10 w-12 bg-white border border-gray-200 rounded flex items-center justify-center mr-4">
-                      <svg className="h-6 w-10 text-gray-400" viewBox="0 0 36 24" fill="currentColor">
-                        <rect width="36" height="24" rx="4" fill="#F3F4F6"/>
-                        <path d="M6 10H10V14H6V10ZM12 10H16V14H12V10ZM18 10H22V14H18V10ZM24 10H28V14H24V10Z" fill="#D1D5DB"/>
-                      </svg>
+        {/* Payment Methods Section - Hidden for Admins */}
+        {user?.role !== 'admin' && (
+          <div className="mt-12 border-t border-gray-100 pt-8">
+            <h3 className="text-xl font-serif font-bold text-gray-900 mb-6">Payment Methods</h3>
+            
+            <div className="space-y-4">
+              {user?.savedCards && user.savedCards.length > 0 ? (
+                user.savedCards.map((card) => (
+                  <div key={card.id} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="h-10 w-12 bg-white border border-gray-200 rounded flex items-center justify-center mr-4">
+                        <svg className="h-6 w-10 text-gray-400" viewBox="0 0 36 24" fill="currentColor">
+                          <rect width="36" height="24" rx="4" fill="#F3F4F6"/>
+                          <path d="M6 10H10V14H6V10ZM12 10H16V14H12V10ZM18 10H22V14H18V10ZM24 10H28V14H24V10Z" fill="#D1D5DB"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{card.cardNumber}</p>
+                        <p className="text-xs text-gray-500">{card.cardType} • Exp: {card.expiryDate}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{card.cardNumber}</p>
-                      <p className="text-xs text-gray-500">{card.cardType} • Exp: {card.expiryDate}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const response = await axios.delete(
-                          `${process.env.REACT_APP_API_URL}/users/cards/${card.cardNumber}`,
-                          { headers: { Authorization: `Bearer ${token}` } }
-                        );
-                        if (response.data.success) {
-                          updateUser({ ...user, savedCards: response.data.data });
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await axios.delete(
+                            `${process.env.REACT_APP_API_URL}/users/cards/${card.cardNumber}`,
+                            { headers: { Authorization: `Bearer ${token}` } }
+                          );
+                          if (response.data.success) {
+                            updateUser({ ...user, savedCards: response.data.data });
+                          }
+                        } catch (err) {
+                          setError('Failed to delete card');
                         }
-                      } catch (err) {
-                        setError('Failed to delete card');
-                      }
-                    }}
-                    className="text-red-600 hover:text-red-800 p-2"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg text-center border border-dashed border-gray-300">
-                No saved payment methods. You can add one during checkout.
-              </p>
-            )}
+                      }}
+                      className="text-red-600 hover:text-red-800 p-2"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg text-center border border-dashed border-gray-300">
+                  No saved payment methods. You can add one during checkout.
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
       {showCropper && (

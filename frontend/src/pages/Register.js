@@ -31,6 +31,20 @@ const Register = () => {
     setError('');
 
     // Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    const phoneRegex = /^(\+94|0)[0-9]{9}$/;
+    if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+      setError('Please enter a valid Sri Lankan phone number (+94xxxxxxxxx or 0xxxxxxxxx)');
+      setLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -48,7 +62,9 @@ const Register = () => {
       await register(userData);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      // Use the specific error from the backend if available
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -65,7 +81,10 @@ const Register = () => {
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <button onClick={() => navigate('/login')} className="font-medium text-primary-600 hover:text-primary-500 bg-none border-none cursor-pointer">
+          <button 
+            onClick={() => navigate('/login')} 
+            className="font-bold text-accent hover:text-accent-dark bg-accent/5 px-3 py-1 rounded-full transition-all cursor-pointer"
+          >
             sign in
           </button>
         </p>
@@ -196,7 +215,7 @@ const Register = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-primary flex justify-center py-3"
+                className="w-full btn-primary flex justify-center py-3 rounded-full shadow-lg hover:shadow-accent/30"
               >
                 {loading ? (
                   <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">

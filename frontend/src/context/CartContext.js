@@ -24,7 +24,7 @@ export const CartProvider = ({ children }) => {
   const addToCart = (product, quantity = 1, size = null, color = null) => {
     setCartItems(prevItems => {
       const existingItemIndex = prevItems.findIndex(
-        item => item.product._id === product._id && 
+        item => item.product.id === product.id && 
                 item.size === size && 
                 item.color === color
       );
@@ -40,7 +40,7 @@ export const CartProvider = ({ children }) => {
         quantity,
         size,
         color,
-        image: product.images[0]?.url || ''
+        image: product.images?.[0]?.url || ''
       }];
     });
     setIsOpen(true);
@@ -49,7 +49,7 @@ export const CartProvider = ({ children }) => {
   const removeFromCart = (productId, size, color) => {
     setCartItems(prevItems => 
       prevItems.filter(item => 
-        !(item.product._id === productId && 
+        !(item.product.id === productId && 
           item.size === size && 
           item.color === color)
       )
@@ -64,7 +64,7 @@ export const CartProvider = ({ children }) => {
 
     setCartItems(prevItems =>
       prevItems.map(item => {
-        if (item.product._id === productId && 
+        if (item.product.id === productId && 
             item.size === size && 
             item.color === color) {
           return { ...item, quantity };
