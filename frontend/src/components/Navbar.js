@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Logo from './Logo';
@@ -10,6 +10,8 @@ const Navbar = () => {
   const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const { getCartCount, openCart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -33,7 +35,11 @@ const Navbar = () => {
         <div className="grid h-24 grid-cols-[190px_1fr_auto] items-center gap-4 md:h-28 md:grid-cols-[260px_1fr_180px]">
           {/* Logo */}
           <div className="flex min-w-0 items-center justify-start">
-            <Logo className="h-16 translate-y-6 md:h-20" light={true} showWordmark={true} />
+            <Logo 
+              className={`h-16 md:h-20 ${isAdminPage ? '' : 'translate-y-6'}`} 
+              light={true} 
+              showWordmark={true} 
+            />
           </div>
 
           {/* Desktop Navigation */}

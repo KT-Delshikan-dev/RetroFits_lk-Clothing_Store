@@ -243,6 +243,12 @@ const Admin = ({ activeTabOverride = 'products' }) => {
         });
       }
 
+      // Fix: Ensure stock is correct if sizes are present
+      if (productFormData.sizes && productFormData.sizes.length > 0) {
+        const totalStock = productFormData.sizes.reduce((acc, s) => acc + (parseInt(s.stock) || 0), 0);
+        formData.set('stock', totalStock);
+      }
+
       if (editingProduct) {
         await axios.put(
           `${process.env.REACT_APP_API_URL}/products/${getProductId(editingProduct)}`,
@@ -791,6 +797,12 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                       <div className="flex items-center">Category {getSortIcon('products', 'category')}</div>
                     </th>
                     <th 
+                      onClick={() => handleSort('products', 'subCategory')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group"
+                    >
+                      <div className="flex items-center">Sub-Category {getSortIcon('products', 'subCategory')}</div>
+                    </th>
+                    <th 
                       onClick={() => handleSort('products', 'price')}
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group"
                     >
@@ -801,6 +813,9 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group"
                     >
                       <div className="flex items-center">Stock {getSortIcon('products', 'stock')}</div>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Featured
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
@@ -837,10 +852,27 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        LKR {product.price.toLocaleString()}
+                        {product.subCategory || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">LKR {product.price.toLocaleString()}</span>
+                          {product.originalPrice && product.originalPrice > product.price && (
+                            <span className="text-xs text-gray-400 line-through">LKR {product.originalPrice.toLocaleString()}</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {product.stock}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {product.featured ? (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            Featured
+                          </span>
+                        ) : (
+                          <span className="text-gray-300 text-xs">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -939,8 +971,14 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                         <div className="text-sm font-medium text-gray-900">{order.user?.name}</div>
                         <div className="text-sm text-gray-500">{order.user?.email}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.items.length} items
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        <div className="max-w-[150px] truncate" title={order.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}>
+                          {order.items?.map((item, idx) => (
+                            <div key={idx} className="truncate text-[10px]">
+                              {item.name} x{item.quantity}
+                            </div>
+                          ))}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                         LKR {order.pricing?.total?.toLocaleString() || '0'}
@@ -1008,6 +1046,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th 
                       onClick={() => handleSort('payments', 'pricing.total')}
@@ -1015,6 +1054,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                     >
                       <div className="flex items-center">Amount {getSortIcon('payments', 'pricing.total')}</div>
                     </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1024,18 +1064,71 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.user?.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 uppercase">{order.payment?.method || 'N/A'}</td>
+                      <td className="px-6 py-4 text-xs text-gray-500">
+                        <div className="max-w-[120px] truncate">
+                          {order.items?.map((item, idx) => (
+                            <div key={idx} className="truncate">{item.name} x{item.quantity}</div>
+                          ))}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          order.payment?.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          order.payment?.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {order.payment?.status || 'Unknown'}
-                        </span>
+                        <div className="flex flex-col space-y-1">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            order.payment?.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            order.payment?.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {order.payment?.status || 'Unknown'}
+                          </span>
+                          {order.payment?.slip && (
+                            <a 
+                              href={`${process.env.REACT_APP_UPLOAD_URL}${order.payment.slip}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-blue-600 hover:underline flex items-center"
+                            >
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View Slip
+                            </a>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
                         LKR {order.pricing?.total?.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        {order.payment?.status === 'pending' && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const headers = { Authorization: `Bearer ${token}` };
+                                // 1. Confirm Payment
+                                await axios.put(
+                                  `${process.env.REACT_APP_API_URL}/orders/${order.id}/payment`,
+                                  { status: 'completed' },
+                                  { headers }
+                                );
+                                // 2. Confirm Order
+                                await axios.put(
+                                  `${process.env.REACT_APP_API_URL}/orders/${order.id}/status`,
+                                  { status: 'confirmed' },
+                                  { headers }
+                                );
+                                fetchData();
+                                showNotification('Order approved and payment confirmed');
+                              } catch (error) {
+                                showNotification('Failed to approve order', 'error');
+                              }
+                            }}
+                            className="text-white hover:bg-green-700 bg-green-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                          >
+                            Approve Order
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1103,7 +1196,7 @@ const Admin = ({ activeTabOverride = 'products' }) => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
-                          onClick={() => handleDeleteUser(u._id)}
+                          onClick={() => handleDeleteUser(u.id || u.$id || u._id)}
                           className="text-red-600 hover:text-red-900 transition-colors"
                         >
                           Delete

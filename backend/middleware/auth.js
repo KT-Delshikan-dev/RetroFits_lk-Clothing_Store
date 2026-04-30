@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const userRepository = require('../repositories/userRepository');
 
 // JWT token generation
 const generateToken = (userId) => {
@@ -35,8 +35,8 @@ const protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from token
-    const user = await User.findById(decoded.id);
+    // Get user from token (Appwrite)
+    const user = await userRepository.getById(decoded.id);
 
     if (!user) {
       return res.status(401).json({
@@ -79,7 +79,7 @@ const optionalAuth = async (req, res, next) => {
 
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id);
+      const user = await userRepository.getById(decoded.id);
       if (user) {
         req.user = user;
       }

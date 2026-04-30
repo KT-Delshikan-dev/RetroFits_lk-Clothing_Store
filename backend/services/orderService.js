@@ -70,7 +70,21 @@ const orderService = {
 
     async getOrderById(orderId) {
         const doc = await databases.getDocument(DATABASE_ID, COLLECTIONS.ORDERS, orderId);
-        return this._formatOrder(doc);
+        const order = this._formatOrder(doc);
+        
+        if (order.user) {
+            try {
+                const userDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.USERS || 'users', order.user);
+                order.user = {
+                    id: userDoc.$id,
+                    name: userDoc.name,
+                    email: userDoc.email
+                };
+            } catch (e) {
+                order.user = { id: order.user, name: 'Unknown User', email: 'N/A' };
+            }
+        }
+        return order;
     },
 
     async getAllOrders(filters = {}) {
@@ -82,8 +96,28 @@ const orderService = {
         queries.push(Query.orderDesc('$createdAt'));
 
         const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, queries);
+        
+        // Populate user details
+        const orders = await Promise.all(response.documents.map(async (doc) => {
+            const order = this._formatOrder(doc);
+            if (order.user) {
+                try {
+                    const userDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.USERS || 'users', order.user);
+                    order.user = {
+                        id: userDoc.$id,
+                        name: userDoc.name,
+                        email: userDoc.email
+                    };
+                } catch (e) {
+                    console.error(`Error fetching user ${order.user}:`, e.message);
+                    order.user = { id: order.user, name: 'Unknown User', email: 'N/A' };
+                }
+            }
+            return order;
+        }));
+
         return {
-            orders: response.documents.map(doc => this._formatOrder(doc)),
+            orders,
             total: response.total
         };
     },
@@ -100,6 +134,24 @@ const orderService = {
         const doc = await databases.updateDocument(DATABASE_ID, COLLECTIONS.ORDERS, orderId, {
             status,
             statusHistory: JSON.stringify(statusHistory)
+        });
+        return this._formatOrder(doc);
+    },
+
+    async updatePaymentStatus(orderId, paymentData) {
+        const order = await this.getOrderById(orderId);
+        const currentPayment = order.payment || {};
+        
+        const updatedPayment = {
+            ...currentPayment,
+            status: paymentData.status || currentPayment.status,
+            transactionId: paymentData.transactionId || currentPayment.transactionId,
+            slip: paymentData.slip || currentPayment.slip,
+            updatedAt: new Date().toISOString()
+        };
+
+        const doc = await databases.updateDocument(DATABASE_ID, COLLECTIONS.ORDERS, orderId, {
+            payment: JSON.stringify(updatedPayment)
         });
         return this._formatOrder(doc);
     },

@@ -94,14 +94,21 @@ const productController = {
             if (productData.price !== undefined && productData.price !== '') {
                 productData.price = parseFloat(productData.price);
             }
-            if (productData.originalPrice !== undefined && productData.originalPrice !== '') {
+            if (productData.originalPrice !== undefined && productData.originalPrice !== '' && productData.originalPrice !== null) {
                 productData.originalPrice = parseFloat(productData.originalPrice);
-            } else if (productData.originalPrice === '') {
-                productData.originalPrice = null;
+            } else {
+                delete productData.originalPrice; // Remove if empty or null to avoid Appwrite errors
             }
             if (productData.stock !== undefined && productData.stock !== '') {
-                productData.stock = parseInt(productData.stock);
+                productData.stock = parseInt(productData.stock) || 0;
+            } else {
+                productData.stock = 0;
             }
+
+            // Ensure booleans are actually booleans and not strings or missing
+            productData.featured = productData.featured === 'true' || productData.featured === true;
+            productData.isActive = productData.isActive === 'true' || productData.isActive === true || productData.isActive === undefined; // Default to true
+            productData.excludeFromNewArrivals = productData.excludeFromNewArrivals === 'true' || productData.excludeFromNewArrivals === true;
 
             // Whitelist allowed fields for Appwrite
             const allowedFields = [

@@ -54,6 +54,7 @@ const productService = {
             sizes: Array.isArray(data.sizes) ? JSON.stringify(data.sizes) : data.sizes,
             colors: Array.isArray(data.colors) ? JSON.stringify(data.colors) : data.colors,
             images: Array.isArray(data.images) ? JSON.stringify(data.images) : data.images,
+            tags: Array.isArray(data.tags) ? JSON.stringify(data.tags) : data.tags,
         };
 
         const doc = await databases.createDocument(
@@ -155,6 +156,9 @@ const productService = {
         }
         if (typeof product.images === 'string') {
             try { product.images = JSON.parse(product.images); } catch (e) { /* ignore */ }
+        }
+        if (typeof product.tags === 'string') {
+            try { product.tags = JSON.parse(product.tags); } catch (e) { /* ignore */ }
         }
 
         return product;

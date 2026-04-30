@@ -38,7 +38,11 @@ const Home = () => {
         return { date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }), revenue };
       });
 
-      setAdminData({ orders, revenueData: revenueByDay });
+      const totalRevenue = orders
+        .filter(o => o.status === 'delivered')
+        .reduce((sum, o) => sum + (o.pricing?.total || 0), 0);
+
+      setAdminData({ orders, revenueData: revenueByDay, totalRevenue });
     } catch (error) {
       console.error('Error fetching admin stats:', error);
     }
@@ -58,9 +62,9 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="pt-8 pb-12 bg-white">
+      <section className={`${isAdmin ? 'pt-4 pb-6' : 'pt-8 pb-12'} bg-white`}>
         <div className="container-custom">
-          <div className="relative bg-gray-950 text-white min-h-[70vh] md:min-h-[80vh] flex items-center rounded-[40px] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.4)] group animate-fade-in">
+          <div className={`relative bg-gray-950 text-white ${isAdmin ? 'min-h-[40vh]' : 'min-h-[70vh] md:min-h-[80vh]'} flex items-center rounded-[40px] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.4)] group animate-fade-in`}>
             <div className="absolute inset-0 overflow-hidden">
               <img
                 src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=900&fit=crop"
@@ -77,10 +81,10 @@ const Home = () => {
                   <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/30 text-primary-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-8 backdrop-blur-md">
                     Management Console • 2026
                   </div>
-                  <h1 className="text-5xl md:text-8xl font-serif font-black mb-8 leading-tight drop-shadow-2xl text-white">
-                    Luxury &<br /><span className="text-secondary-500 italic">Excellence.</span>
+                  <h1 className="text-3xl md:text-5xl font-serif font-black mb-4 leading-tight drop-shadow-2xl text-white">
+                    Luxury & <span className="text-secondary-500 italic">Excellence.</span>
                   </h1>
-                  <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-lg font-light leading-relaxed tracking-wide">
+                  <p className="text-sm md:text-base text-gray-300 mb-6 max-w-lg font-light leading-relaxed tracking-wide">
                     Welcome, {user?.name.split(' ')[0]}. Command the future of AVENZA with precision analytics and inventory mastery.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-6">
@@ -127,11 +131,51 @@ const Home = () => {
         <div className="container-custom">
           {isAdmin ? (
             <div>
-              <div className="flex justify-between items-center mb-12">
-                <h2 className="text-3xl font-serif font-bold text-gray-900">Store Analytics Overview</h2>
-                <Link to="/admin/reports" className="text-primary-600 hover:text-primary-700 font-medium">
-                  Detailed Reports →
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-3xl font-serif font-bold text-gray-900">Executive Overview</h2>
+                  <p className="text-gray-500 text-sm">Real-time performance metrics and order monitoring</p>
+                </div>
+                <Link to="/admin/reports" className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-50 transition-all shadow-sm">
+                  Detailed Reports
                 </Link>
+              </div>
+
+              {/* Stat Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Revenue</p>
+                    <p className="text-2xl font-black text-gray-900">LKR {adminData.totalRevenue?.toLocaleString() || '0'}</p>
+                  </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Orders</p>
+                    <p className="text-2xl font-black text-gray-900">{adminData.orders.length}</p>
+                  </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Active Users</p>
+                    <p className="text-2xl font-black text-gray-900">Verified</p>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -170,6 +214,81 @@ const Home = () => {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
+                </div>
+              </div>
+
+              {/* Recent Orders Section - Added as requested */}
+              <div className="mt-12">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">Recent Orders</h3>
+                  <Link to="/admin/orders" className="text-sm text-primary-600 hover:underline">View All Orders</Link>
+                </div>
+                <div className="space-y-4">
+                  {adminData.orders.filter(o => o.status === 'pending').slice(0, 5).map((order) => (
+                    <div key={order.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col hover:border-primary-200 transition-all">
+                      <div className="flex items-center space-x-4 mb-3 md:mb-0">
+                        <div className="h-10 w-10 bg-primary-50 rounded-full flex items-center justify-center text-primary-700 font-bold">
+                          {order.user?.name?.charAt(0) || 'G'}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className="font-bold text-gray-900">{order.orderNumber}</p>
+                            <span className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded-full ${
+                              order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-4 items-center">
+                        <div className="text-sm">
+                          <span className="text-gray-500">Customer:</span>
+                          <span className="ml-1 font-medium">{order.user?.name || 'Guest'}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-gray-500">Amount:</span>
+                          <span className="ml-1 font-bold">LKR {order.pricing?.total?.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Items Preview - Added as requested */}
+                      <div className="mt-3 pt-3 border-t border-gray-50">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Ordered Items:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {order.items?.map((item, idx) => (
+                            <div key={idx} className="flex items-center bg-gray-50 rounded-lg px-2 py-1 border border-gray-100">
+                              {item.image && (
+                                <img 
+                                  src={`${process.env.REACT_APP_UPLOAD_URL}${item.image}`} 
+                                  alt={item.name} 
+                                  className="h-6 w-6 object-cover rounded mr-2"
+                                />
+                              )}
+                              <span className="text-xs text-gray-700 font-medium">
+                                {item.name} <span className="text-gray-400 ml-1">x{item.quantity}</span>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <Link to={`/admin/orders`} className="text-primary-600 hover:text-primary-800 text-sm font-medium">
+                          Manage Order →
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                  {adminData.orders.filter(o => o.status === 'pending').length === 0 && (
+                    <p className="text-center py-8 text-gray-500 italic bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                      No newly arrived (pending) orders to display.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 # AVENZA - Clothing E-commerce Web Application
 
-A full-stack e-commerce web application for a clothing store called "AVENZA". Built with React, Node.js, Express, and MongoDB.
+A full-stack e-commerce web application for a clothing store called "AVENZA". Built with React, Node.js, Express, and **Appwrite Cloud**.
 
 ![AVENZA](https://img.shields.io/badge/AVENZA-LK-primary)
 ![License](https://img.shields.io/badge/license-ISC-blue)
@@ -8,243 +8,118 @@ A full-stack e-commerce web application for a clothing store called "AVENZA". Bu
 ## Features
 
 ### User Features
-- **User Authentication**: Register and login with JWT-based authentication
+- **User Authentication**: Register and login with Appwrite authentication
 - **Product Browsing**: Browse clothing items with filtering and sorting
 - **Search**: Full-text search across products
 - **Shopping Cart**: Add/remove items, update quantities
 - **Checkout**: Complete checkout with delivery address and payment selection
 - **Order History**: View past orders and track status
-- **Order Cancellation**: Cancel pending/confirmed orders
+- **Order Cancellation**: Users can cancel pending orders before they are confirmed
+- **Bank Transfer Workflow**: Upload payment slips (receipts) directly during checkout for bank transfers
 
-- **Product Management**: Add, edit, and delete products with advanced sorting (Name, Price, Category, Stock)
-- **Image Upload**: Support for large files (up to 30MB) and expanded formats (AVIF, TIFF, BMP, SVG, HEIC)
-- **Order Management**: View all orders, update status, and sort by Date, Amount, or Status
-- **Inventory Management**: Efficient size-based stock tracking with bulk management tools
-- **User Management**: View and manage user accounts with sorting and role updates
+### Admin Features
+- **Executive Dashboard**: Professional management console with real-time analytics (Revenue, Orders, User metrics)
+- **Order Approval**: Review uploaded payment slips and approve orders with a single click
+- **Product Management**: Full CRUD operations for products with multi-image support
+- **Category Management**: Organized by Men, Women, Jerseys (National/Club), and Accessories
+- **User Management**: Monitor user activity and manage roles
+- **Payment Oversight**: Dedicated tab for monitoring and confirming transaction statuses
 
 ### Payment Options
 - Cash on Delivery (COD)
-- Card Payment (Mock Stripe integration)
+- Card Payment (Secure OTP-verified flow)
+- **Bank Transfer**: Integrated slip upload and admin verification workflow
 
 ### Additional Features
-- Responsive design (mobile + desktop)
-- Category-based browsing (Men, Women, Streetwear, Accessories, Footwear, Sale)
-- SMS confirmation (Mock Twilio integration)
-- Bill generation after purchase
-- Interactive Admin Dashboard with data sorting and bulk inventory tools
+- Responsive design (mobile + desktop optimized)
+- Dynamic "Newly Arrived" filters for admins
+- Category-based browsing with support for customized sub-categories
+- Professional typography using Google Fonts (Inter, Outfit)
+- Dark-themed premium hero sections
 
 ## Tech Stack
 
 ### Frontend
 - React 18
-- React Router v6
 - Tailwind CSS
 - Axios
+- Lucide Icons
 
 ### Backend
-- Node.js
-- Express.js
-- MongoDB with Mongoose
-- JWT for authentication
-- Bcrypt for password hashing
-- Multer for file uploads
-
-## Project Structure
-
-```
-Clothing_Store_Web_app/
-├── backend/
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── Product.js
-│   │   └── Order.js
-│   ├── routes/
-│   │   ├── auth.js
-│   │   ├── products.js
-│   │   ├── orders.js
-│   │   └── users.js
-│   ├── middleware/
-│   │   ├── auth.js
-│   │   └── upload.js
-│   ├── uploads/
-│   ├── .env
-│   ├── server.js
-│   ├── seed.js
-│   └── package.json
-└── frontend/
-    ├── public/
-    ├── src/
-    │   ├── components/
-    │   │   ├── Navbar.js
-    │   │   ├── CartSidebar.js
-    │   │   └── Footer.js
-    │   ├── context/
-    │   │   ├── AuthContext.js
-    │   │   └── CartContext.js
-    │   ├── pages/
-    │   │   ├── Home.js
-    │   │   ├── Products.js
-    │   │   ├── ProductDetail.js
-    │   │   ├── Login.js
-    │   │   ├── Register.js
-    │   │   ├── Checkout.js
-    │   │   ├── Orders.js
-    │   │   ├── OrderConfirmation.js
-    │   │   └── Admin.js
-    │   ├── App.js
-    │   ├── index.js
-    │   └── index.css
-    ├── .env
-    ├── tailwind.config.js
-    └── package.json
-```
+- Node.js & Express.js
+- **Appwrite Cloud** (Database, Storage, Auth)
+- Multer for local/hybrid file handling
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- MongoDB (local or MongoDB Atlas)
+- Node.js (v16 or higher)
+- Appwrite Project (Cloud or Self-hosted)
 - npm or yarn
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   cd Clothing_Store_Web_app
+   git clone https://github.com/KT-Delshikan-dev/avenza_lk-Clothing_Store.git
+   cd avenza_lk-Clothing_Store
    ```
 
-2. **Install backend dependencies**
+2. **Configure Backend**
    ```bash
    cd backend
    npm install
    ```
-
-3. **Configure environment variables**
-   
-   Create a `.env` file in the backend directory:
+   Create a `.env` file in the `backend` directory with your Appwrite credentials:
    ```env
-   PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/retrofits_lk
-   JWT_SECRET=your_secret_key_here
-   NODE_ENV=development
+   PORT=5005
+   APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+   APPWRITE_PROJECT_ID=your_project_id
+   APPWRITE_API_KEY=your_api_key
+   APPWRITE_DATABASE_ID=your_db_id
+   APPWRITE_STORAGE_BUCKET_ID=your_bucket_id
    ```
 
-4. **Seed the database with sample data**
+3. **Configure Frontend**
    ```bash
-   npm run seed
-   ```
-
-5. **Start the backend server**
-   ```bash
-   npm start
-   # or for development with auto-reload
-   npm run dev
-   ```
-
-6. **Install frontend dependencies (in a new terminal)**
-   ```bash
-   cd frontend
+   cd ../frontend
    npm install
    ```
-
-7. **Configure frontend environment**
-   
-   Create a `.env` file in the frontend directory:
+   Create a `.env` file in the `frontend` directory:
    ```env
-   REACT_APP_API_URL=http://localhost:5000/api
+   REACT_APP_API_URL=http://localhost:5005/api
+   REACT_APP_UPLOAD_URL=http://localhost:5005
    ```
 
-8. **Start the frontend development server**
+4. **Run the Application**
    ```bash
+   # Backend (from backend directory)
+   npm run dev
+   
+   # Frontend (from frontend directory)
    npm start
    ```
-
-9. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000/api
-
-### Demo Accounts
-
-After running the seed script, you can use these demo accounts:
-
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@retrofits.lk | admin123 |
-| User | user@retrofits.lk | user123 |
 
 ## API Endpoints
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
-- `PUT /api/auth/profile` - Update user profile
+### Orders & Payments
+- `POST /api/orders` - Create new order
+- `POST /api/orders/:id/slip` - Upload payment receipt (User)
+- `PUT /api/orders/:id/payment` - Confirm/Update payment status (Admin)
+- `PUT /api/orders/:id/status` - Update shipping/order status (Admin)
+- `GET /api/orders/admin/all` - Comprehensive order list for administration
 
 ### Products
-- `GET /api/products` - Get all products (with filtering, sorting, pagination)
-- `GET /api/products/:id` - Get single product
-- `POST /api/products` - Create product (Admin only)
-- `PUT /api/products/:id` - Update product (Admin only)
-- `DELETE /api/products/:id` - Delete product (Admin only)
-- `GET /api/products/featured/` - Get featured products
-
-### Orders
-- `POST /api/orders` - Create new order
-- `GET /api/orders` - Get user's orders
-- `GET /api/orders/:id` - Get single order
-- `PUT /api/orders/:id/payment` - Update payment status
-- `DELETE /api/orders/:id/cancel` - Cancel order
-- `GET /api/orders/admin/all` - Get all orders (Admin only)
-- `PUT /api/orders/:id/status` - Update order status (Admin only)
-
-### Users
-- `GET /api/users` - Get all users (Admin only)
-- `PUT /api/users/addresses` - Add/update address
-- `PUT /api/users/password` - Change password
-
-## Features Overview
-
-### Shopping Flow
-1. Browse products on the home page or products page
-2. Filter by category, price range, or search
-3. View product details with size/color options
-4. Add items to cart
-5. Proceed to checkout
-6. Enter delivery information
-7. Select payment method (COD or Card)
-8. Confirm order and view confirmation
-
-### Admin Panel
-- Access at `/admin` (requires admin role)
-- Manage products (add, edit, delete)
-- View and manage all orders
-- Update order status
+- `GET /api/products` - Filtered product listing
+- `POST /api/products` - Create new product with image uploads
 
 ## Styling
 
-The application uses Tailwind CSS with custom color schemes:
-- Primary: Warm brown tones (#b87354)
-- Secondary: Neutral beige tones (#9e8f6e)
-- Fonts: Inter (sans-serif), Playfair Display (serif)
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the ISC License.
-
-## Contact
-
-For support or queries, please contact:
-- Email: info@retrofits.lk
-- Phone: +94 076 0929 712
+The application uses a premium design system:
+- **Primary**: Deep Navy & Gold accents
+- **Aesthetics**: Glassmorphism, smooth gradients, and professional typography
+- **Responsive**: Fully optimized for all screen sizes
 
 ---
 
-Built with ❤️ by AVENZA Team# RetroFits_lk-Clothing_Store
+Built with ❤️ by AVENZA Team

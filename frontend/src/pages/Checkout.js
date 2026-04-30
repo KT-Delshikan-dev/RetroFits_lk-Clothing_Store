@@ -28,6 +28,16 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [paymentSlip, setPaymentSlip] = useState(null);
+  const [paymentSlipPreview, setPaymentSlipPreview] = useState(null);
+
+  const handleSlipChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPaymentSlip(file);
+      setPaymentSlipPreview(URL.createObjectURL(file));
+    }
+  };
   const [notification, setNotification] = useState({ message: '', type: '' });
 
   // Card payment state
@@ -180,7 +190,29 @@ const Checkout = () => {
         
         setShowVerificationModal(true);
       } else {
-        // COD - Proceed to confirmation
+        // Bank Transfer - upload slip if exists
+        if (paymentMethod === 'bank_transfer' && paymentSlip) {
+          const orderId = response.data.data.id;
+          const slipFormData = new FormData();
+          slipFormData.append('slip', paymentSlip);
+          
+          try {
+            await axios.post(
+              `${process.env.REACT_APP_API_URL}/orders/${orderId}/slip`,
+              slipFormData,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'multipart/form-data'
+                }
+              }
+            );
+          } catch (slipErr) {
+            console.error('Error uploading slip:', slipErr);
+          }
+        }
+
+        // COD or Bank Transfer - Proceed to confirmation
         clearCart();
         navigate('/order-confirmation', { state: { order: response.data.data } });
       }
@@ -531,6 +563,66 @@ const Checkout = () => {
                             </label>
                           </div>
                         )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border border-gray-300 rounded-lg overflow-hidden transition-all hover:border-primary-600">
+                    <label className={`flex items-center p-4 cursor-pointer ${paymentMethod === 'bank_transfer' ? 'bg-primary-50' : ''}`}>
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="bank_transfer"
+                        checked={paymentMethod === 'bank_transfer'}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                      />
+                      <div className="ml-3">
+                        <span className="font-medium">Bank Transfer</span>
+                        <p className="text-sm text-gray-500">Transfer funds directly to our bank account</p>
+                      </div>
+                    </label>
+
+                    {paymentMethod === 'bank_transfer' && (
+                      <div className="p-4 border-t border-gray-200 bg-blue-50 space-y-3">
+                        <p className="text-sm font-bold text-blue-800">Our Bank Details:</p>
+                        <div className="text-sm text-blue-700 space-y-1">
+                          <p><span className="font-medium">Bank:</span> Commercial Bank</p>
+                          <p><span className="font-medium">Branch:</span> Colombo 07</p>
+                          <p><span className="font-medium">Account Name:</span> AVENZA FASHION (PVT) LTD</p>
+                          <p><span className="font-medium">Account Number:</span> 1000 2345 6789</p>
+                        </div>
+                        <p className="text-xs text-blue-600 mt-2">
+                          * Please use your Order Number as the payment reference. Your order will be processed after payment confirmation.
+                        </p>
+                        <div className="mt-4 pt-4 border-t border-blue-100">
+                          <label className="block text-sm font-bold text-blue-900 mb-2">Upload Payment Slip:</label>
+                          <div className="flex items-center space-x-4">
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={handleSlipChange}
+                              className="hidden"
+                              id="slip-upload"
+                            />
+                            <label 
+                              htmlFor="slip-upload" 
+                              className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-200 transition-colors"
+                            >
+                              {paymentSlip ? 'Change Slip' : 'Select Slip (Image/PDF)'}
+                            </label>
+                            {paymentSlip && (
+                              <span className="text-xs text-blue-600 truncate max-w-[150px]">
+                                {paymentSlip.name}
+                              </span>
+                            )}
+                          </div>
+                          {paymentSlipPreview && paymentSlip.type.startsWith('image/') && (
+                            <div className="mt-3">
+                              <img src={paymentSlipPreview} alt="Slip preview" className="h-20 w-20 object-cover rounded border border-blue-200" />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

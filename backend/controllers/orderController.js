@@ -67,6 +67,31 @@ const orderController = {
         }
     },
 
+    async updatePaymentStatus(req, res) {
+        try {
+            const { status, transactionId } = req.body;
+            const order = await orderService.updatePaymentStatus(req.params.id, { status, transactionId });
+            res.json({ success: true, message: 'Payment status updated', data: order });
+        } catch (error) {
+            console.error('Error in updatePaymentStatus:', error);
+            res.status(400).json({ success: false, message: 'Failed to update payment status' });
+        }
+    },
+
+    async uploadPaymentSlip(req, res) {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ success: false, message: 'Please upload a file' });
+            }
+            const slipPath = `/uploads/${req.file.filename}`;
+            const order = await orderService.updatePaymentStatus(req.params.id, { slip: slipPath });
+            res.json({ success: true, message: 'Payment slip uploaded', data: order });
+        } catch (error) {
+            console.error('Error in uploadPaymentSlip:', error);
+            res.status(400).json({ success: false, message: 'Failed to upload payment slip' });
+        }
+    },
+
     async deleteOrder(req, res) {
         try {
             await orderService.deleteOrder(req.params.id);
@@ -74,6 +99,31 @@ const orderController = {
         } catch (error) {
             console.error('Error in deleteOrder:', error);
             res.status(500).json({ success: false, message: 'Failed to delete order' });
+        }
+    },
+
+    async cancelOrder(req, res) {
+        try {
+            const order = await orderService.getOrderById(req.params.id);
+            
+            // Check ownership
+            if (order.user !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Unauthorized' });
+            }
+
+            // Check status - only allow cancellation if pending
+            if (order.status !== 'pending') {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Cannot cancel order with status: ${order.status}. Only pending orders can be cancelled.` 
+                });
+            }
+
+            const updatedOrder = await orderService.updateOrderStatus(req.params.id, 'cancelled');
+            res.json({ success: true, message: 'Order cancelled successfully', data: updatedOrder });
+        } catch (error) {
+            console.error('Error in cancelOrder:', error);
+            res.status(400).json({ success: false, message: 'Failed to cancel order', error: error.message });
         }
     }
 };
