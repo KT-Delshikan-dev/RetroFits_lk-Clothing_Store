@@ -17,9 +17,10 @@ const authController = {
             const result = await authService.registerUser(req.body);
             res.status(201).json({
                 success: true,
-                message: 'User registered successfully',
+                message: 'User registered successfully. Please verify your email.',
                 token: result.token,
-                user: result.user
+                user: result.user,
+                requiresVerification: true
             });
         } catch (error) {
             console.error('Registration error:', error);
@@ -60,7 +61,8 @@ const authController = {
                     id: user.id,
                     name: user.name,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    emailVerification: user.emailVerification
                 },
                 token
             });
@@ -111,13 +113,6 @@ const authController = {
             const userId = req.user.id;
             const updateData = { ...req.body };
 
-            // Handle profile image upload
-            if (req.file) {
-                updateData.profileImage = `/uploads/${req.file.filename}`;
-            } else if (req.body.removeProfileImage === 'true') {
-                updateData.profileImage = null;
-            }
-
             const updatedUser = await authService.updateUserProfile(userId, updateData);
 
             res.json({
@@ -128,6 +123,78 @@ const authController = {
         } catch (error) {
             console.error('Update profile error:', error);
             res.status(500).json({ success: false, message: 'Failed to update profile', error: error.message });
+        }
+    },
+
+    /**
+     * Get or create user for social login
+     */
+    async meSocial(req, res) {
+        try {
+            const { email } = req.query;
+            if (!email) {
+                return res.status(400).json({ success: false, message: 'Email is required' });
+            }
+
+            let user = await authService.getUserByEmail(email);
+            
+            if (!user) {
+                // If user doesn't exist in our DB but exists in Appwrite Auth,
+                // we should create the DB record.
+                // Note: In a real app, we'd fetch the name/id from Appwrite here.
+                const { users } = require('../services/appwrite');
+                const authUsers = await users.list([require('node-appwrite').Query.equal('email', email)]);
+                
+                if (authUsers.total > 0) {
+                    const authUser = authUsers.users[0];
+                    user = await authService.createSocialUserDocument({
+                        id: authUser.$id,
+                        email: authUser.email,
+                        name: authUser.name
+                    });
+                } else {
+                    return res.status(404).json({ success: false, message: 'Social user not found' });
+                }
+            }
+
+            // Generate JWT Token
+            const token = jwt.sign(
+                { id: user.id, email: user.email, role: user.role },
+                process.env.JWT_SECRET || 'your-secret-key',
+                { expiresIn: '30d' }
+            );
+
+            res.json({
+                success: true,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    emailVerification: user.emailVerification
+                },
+                token
+            });
+        } catch (error) {
+            console.error('meSocial error:', error);
+            res.status(500).json({ success: false, message: 'Social sync failed', error: error.message });
+        }
+    },
+
+    /**
+     * Delete user account
+     */
+    async deleteAccount(req, res) {
+        try {
+            const userId = req.user.id;
+            await authService.deleteUser(userId);
+            res.json({
+                success: true,
+                message: 'Account deleted successfully'
+            });
+        } catch (error) {
+            console.error('Delete account error:', error);
+            res.status(500).json({ success: false, message: 'Failed to delete account', error: error.message });
         }
     }
 };

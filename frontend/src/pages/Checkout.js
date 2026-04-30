@@ -116,6 +116,13 @@ const Checkout = () => {
     setLoading(true);
     setError('');
 
+    // Bank Transfer validation - Slip is mandatory
+    if (paymentMethod === 'bank_transfer' && !paymentSlip) {
+      setError('Please upload your payment slip to complete the bank transfer order.');
+      setLoading(false);
+      return;
+    }
+
     // Card validation
     if (paymentMethod === 'card' && showNewCardForm) {
       if (!validateCardNumber(newCardData.cardNumber)) {

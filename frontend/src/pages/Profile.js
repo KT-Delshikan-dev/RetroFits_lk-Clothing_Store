@@ -2,29 +2,19 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
-import ImageCropper from '../components/ImageCropper';
 
 
 const Profile = () => {
-  const { user, token, updateUser } = useAuth();
+  const { user, token, updateUser, logout } = useAuth();
   
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
   });
 
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-
-  const [profileImage, setProfileImage] = useState(null);
-  const [previewImage, setPreviewImage] = useState('');
-  const [removePhoto, setRemovePhoto] = useState(false);
-
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [showCropper, setShowCropper] = useState(false);
-  const [tempImageSrc, setTempImageSrc] = useState('');
 
 
   useEffect(() => {
@@ -33,8 +23,6 @@ const Profile = () => {
         name: user.name || '',
         phone: user.phone || '',
       });
-      setPreviewImage(user.profileImage ? `${process.env.REACT_APP_UPLOAD_URL}${user.profileImage}` : '');
-      setRemovePhoto(false);
     }
   }, [user]);
 
@@ -49,49 +37,18 @@ const Profile = () => {
     });
   };
 
-  const handleSendOtp = async () => {
-    try {
-      setError('');
-      setMessage('');
-      await axios.post(
-        `${process.env.REACT_APP_API_URL}/auth/send-otp`,
-        { phone: formData.phone },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setOtpSent(true);
-      setMessage('Verification code sent! Check your messages (or the terminal).');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send OTP');
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     setError('');
 
     try {
-      const payload = new FormData();
-      payload.append('name', formData.name);
-      payload.append('phone', formData.phone);
-      
-      if (formData.phone !== user.phone && otp) {
-        payload.append('otp', otp);
-      }
-
-      if (profileImage) {
-        payload.append('profileImage', profileImage);
-      } else if (removePhoto) {
-        payload.append('removeProfileImage', 'true');
-      }
-
       const response = await axios.put(
         `${process.env.REACT_APP_API_URL}/auth/profile`,
-        payload,
+        formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
+            Authorization: `Bearer ${token}`
           }
         }
       );
@@ -99,15 +56,26 @@ const Profile = () => {
       if (response.data.success) {
         setMessage('Profile updated successfully!');
         setIsEditing(false);
-        setOtp('');
-        setOtpSent(false);
-        setProfileImage(null);
-        setRemovePhoto(false);
-        // Call updateUser in context if available, or force reload context
         if(updateUser) updateUser(response.data.user);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update profile');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (window.confirm('Are you SURE you want to delete your account? This action is PERMANENT and all your data will be lost.')) {
+      try {
+        const response = await axios.delete(
+          `${process.env.REACT_APP_API_URL}/auth/profile`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (response.data.success) {
+          logout();
+        }
+      } catch (err) {
+        setError('Failed to delete account');
+      }
     }
   };
 
@@ -128,48 +96,10 @@ const Profile = () => {
           </div>
         )}
 
-        <div className="mb-6 flex flex-col items-center">
-          <div className="relative h-24 w-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-800 text-3xl font-bold uppercase overflow-hidden mb-2 shadow-sm border border-gray-200">
-            {previewImage ? (
-              <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              user?.name?.charAt(0)
-            )}
-            
-            {isEditing && (
-              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                <label className="cursor-pointer text-white text-xs text-center p-1 w-full h-full flex items-center justify-center">
-                  Change
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files[0]) {
-                        setTempImageSrc(URL.createObjectURL(e.target.files[0]));
-                        setShowCropper(true);
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-            )}
-
+        <div className="mb-8 flex flex-col items-center">
+          <div className="h-24 w-24 rounded-full bg-primary-100 flex items-center justify-center text-primary-800 text-3xl font-bold uppercase shadow-sm border border-gray-200">
+            {user?.name?.charAt(0)}
           </div>
-          {isEditing && <span className="text-xs text-gray-500">Click avatar to upload new image</span>}
-          {isEditing && previewImage && (
-            <button 
-              type="button" 
-              onClick={() => {
-                setProfileImage(null);
-                setPreviewImage('');
-                setRemovePhoto(true);
-              }} 
-              className="mt-2 text-sm font-medium text-red-600 hover:text-red-800"
-            >
-              Remove Photo
-            </button>
-          )}
         </div>
 
         <div className="space-y-4">
@@ -223,49 +153,21 @@ const Profile = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                <div className="flex gap-2">
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    required
-                  />
-                  {formData.phone !== user?.phone && !otpSent && (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      className="px-4 py-2 bg-secondary-600 text-white rounded-md text-sm hover:bg-secondary-700 transition"
-                    >
-                      Send Code
-                    </button>
-                  )}
-                </div>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
               </div>
-
-              {otpSent && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="Enter 6-digit code"
-                    className="w-full px-4 py-2 border border-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-primary-50"
-                  />
-                </div>
-              )}
 
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditing(false);
-                    setOtpSent(false);
-                    setOtp('');
-                    setProfileImage(null);
-                    setPreviewImage(user?.profileImage ? `${process.env.REACT_APP_UPLOAD_URL}${user.profileImage}` : '');
                     setFormData({ name: user.name || '', phone: user.phone || '' });
                   }}
                   className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors"
@@ -274,8 +176,7 @@ const Profile = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={formData.phone !== user?.phone && !otp}
-                  className="flex-1 bg-primary-900 text-white py-3 rounded-md font-semibold hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-primary-900 text-white py-3 rounded-md font-semibold hover:bg-primary-800 transition-colors"
                 >
                   Save Changes
                 </button>
@@ -335,21 +236,18 @@ const Profile = () => {
             </div>
           </div>
         )}
-      </div>
-      
-      {showCropper && (
-        <ImageCropper 
-          src={tempImageSrc}
-          onCropComplete={(file, preview) => {
-            setProfileImage(file);
-            setPreviewImage(preview);
-            setShowCropper(false);
-          }}
-          onCancel={() => setShowCropper(false)}
-        />
-      )}
-    </div>
 
+        <div className="mt-12 pt-8 border-t border-red-50 text-center">
+          <p className="text-sm text-gray-500 mb-4">Dangerous Area</p>
+          <button
+            onClick={handleDeleteAccount}
+            className="text-red-600 text-sm font-bold hover:text-red-800 transition-colors"
+          >
+            Delete My Account Permanently
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

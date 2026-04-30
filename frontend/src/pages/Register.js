@@ -13,6 +13,8 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -59,8 +61,14 @@ const Register = () => {
 
     try {
       const { confirmPassword, ...userData } = formData;
-      await register(userData);
-      navigate('/');
+      const response = await register(userData);
+      
+      if (response.requiresVerification) {
+        setSuccess(true);
+        setRegisteredEmail(formData.email);
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       // Use the specific error from the backend if available
       const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Registration failed. Please try again.';
@@ -92,11 +100,32 @@ const Register = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {error}
+          {success ? (
+            <div className="bg-green-50 border border-green-200 p-8 rounded-lg text-center animate-fade-in">
+              <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600">
+                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Registration Successful!</h3>
+              <p className="text-gray-600 mb-6">
+                We've sent a verification email to <span className="font-bold text-gray-900">{registeredEmail}</span>. 
+                Please verify your account to start shopping.
+              </p>
+              <button 
+                onClick={() => navigate('/login')}
+                className="btn-primary px-8 py-3 rounded-full"
+              >
+                Go to Login
+              </button>
             </div>
-          )}
+          ) : (
+            <>
+              {error && (
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
@@ -228,6 +257,8 @@ const Register = () => {
               </button>
             </div>
           </form>
+          </>
+          )}
         </div>
       </div>
     </div>

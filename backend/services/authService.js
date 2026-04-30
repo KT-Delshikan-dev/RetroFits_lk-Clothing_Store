@@ -94,7 +94,8 @@ const authService = {
                     id: authUser.$id,
                     name: authUser.name,
                     email: authUser.email,
-                    role: 'user'
+                    role: 'user',
+                    emailVerification: authUser.emailVerification
                 },
                 token
             };
@@ -116,7 +117,10 @@ const authService = {
         );
         
         if (response.total === 0) return null;
-        return { ...response.documents[0], id: response.documents[0].$id };
+        
+        // Also get verification status from Auth if possible, or just use database field
+        const doc = response.documents[0];
+        return { ...doc, id: doc.$id };
     },
 
     /**
@@ -148,6 +152,50 @@ const authService = {
             console.error('Service updateProfile error:', error);
             throw error;
         }
+    },
+
+    /**
+     * Delete user from Auth and Database
+     */
+    async deleteUser(userId) {
+        const { databases, DATABASE_ID, COLLECTIONS } = require('./appwrite');
+        try {
+            // 1. Delete from Auth
+            await users.delete(userId);
+            
+            // 2. Delete from Database
+            try {
+                await databases.deleteDocument(DATABASE_ID, COLLECTIONS.USERS, userId);
+            } catch (dbErr) {
+                console.log('User document might not exist or already deleted');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Service deleteUser error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Create user document for social login users
+     */
+    async createSocialUserDocument({ id, email, name }) {
+        const { databases, DATABASE_ID, COLLECTIONS } = require('./appwrite');
+        const doc = await databases.createDocument(
+            DATABASE_ID,
+            COLLECTIONS.USERS,
+            id,
+            {
+                name: name || 'Google User',
+                email,
+                phone: '',
+                password: 'SOCIAL_LOGIN', // Placeholder
+                role: 'user',
+                createdAt: new Date().toISOString()
+            }
+        );
+        return { ...doc, id: doc.$id };
     }
 };
 

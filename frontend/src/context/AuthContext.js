@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
+import { account } from '../services/appwrite';
 
 const AuthContext = createContext();
 
@@ -19,6 +20,30 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = localStorage.getItem('token');
+      
+      // Check for Appwrite session (Google Login)
+      try {
+        const appwriteUser = await account.get();
+        if (appwriteUser) {
+          // If we have an Appwrite session but no backend token, sync them
+          if (!storedToken) {
+            // This is a simplified sync - in a real app, you'd send the Appwrite session to the backend
+            // For now, let's just fetch the user from our backend by email
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/auth/me-social?email=${appwriteUser.email}`);
+            if (response.data.success) {
+              const { token: newToken, user: userData } = response.data;
+              localStorage.setItem('token', newToken);
+              setToken(newToken);
+              setUser(userData);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        // No Appwrite session, proceed with token check
+      }
+
       if (storedToken) {
         setToken(storedToken);
         try {
@@ -53,6 +78,14 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const loginWithGoogle = () => {
+    account.createOAuth2Session(
+      'google',
+      window.location.origin, // Success redirect
+      window.location.origin + '/login' // Failure redirect
+    );
+  };
+
   const register = async (userData) => {
     const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/register`, userData);
     
@@ -80,6 +113,7 @@ export const AuthProvider = ({ children }) => {
     token,
     loading,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateUser,
